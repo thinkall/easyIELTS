@@ -1,12 +1,18 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SpeakingEvent, TranscriptTurn, SpeakingEvaluation } from "@/lib/speaking/types";
 import type { SpeakingSession, SessionCallbacks, SessionStatus } from "@/lib/speaking/session";
 import { createSpeakingSession } from "@/lib/speaking/session";
 import type { SpeakingTest } from "@/lib/content/speaking";
 
 type CreateSession = (part: string, cb: SessionCallbacks) => SpeakingSession;
+
+function formatTime(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
 export function SpeakingRunner({
   test,
@@ -19,6 +25,13 @@ export function SpeakingRunner({
   const [turns, setTurns] = useState<TranscriptTurn[]>([]);
   const [result, setResult] = useState<SpeakingEvaluation | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const isLive = status === "live" || status === "connecting";
+  useEffect(() => {
+    if (!isLive) return;
+    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [isLive]);
   const sessionRef = useRef<SpeakingSession | null>(null);
   const turnsRef = useRef<TranscriptTurn[]>([]);
 
@@ -35,6 +48,7 @@ export function SpeakingRunner({
 
   async function start() {
     setError(null);
+    setElapsed(0);
     const session = createSession(test.part, { onEvent: handleEvent, onStatus: setStatus });
     sessionRef.current = session;
     try {
@@ -66,8 +80,6 @@ export function SpeakingRunner({
     }
   }
 
-  const live = status === "live" || status === "connecting";
-
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8">
       <header>
@@ -75,13 +87,19 @@ export function SpeakingRunner({
         <p className="text-sm text-amber-600">🎯 Band 7 = wide vocabulary, &gt;50% error-free, natural fluency</p>
       </header>
 
+      {isLive && (
+        <p className="font-mono text-sm text-gray-600 dark:text-gray-300" aria-label="elapsed time">
+          ⏱ {formatTime(elapsed)} <span className="text-gray-400">/ 6:00 max</span>
+        </p>
+      )}
+
       {status === "idle" && (
         <button onClick={start} className="self-start rounded-lg bg-indigo-600 px-6 py-2 font-medium text-white hover:bg-indigo-700">
           Start speaking test
         </button>
       )}
       {status === "connecting" && <p className="text-sm text-gray-500">Connecting… allow microphone access.</p>}
-      {live && (
+      {isLive && (
         <button onClick={finish} className="self-start rounded-lg bg-red-600 px-6 py-2 font-medium text-white hover:bg-red-700">
           Finish &amp; get my band
         </button>

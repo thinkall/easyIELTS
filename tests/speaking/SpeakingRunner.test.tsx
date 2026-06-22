@@ -30,6 +30,7 @@ describe("SpeakingRunner", () => {
 
     render(<SpeakingRunner test={{ id: "x", skill: "speaking", title: "Part 1", part: "1" }} createSession={f.create} />);
     await userEvent.click(screen.getByRole("button", { name: /start/i }));
+    expect(screen.getByLabelText(/elapsed time/i)).toBeInTheDocument();
     // Examiner speaks, candidate answers.
     f.emit({ type: "output_transcript", text: "What is your name?" } as never);
     f.emit({ type: "input_transcript", text: "My name is Sam." } as never);
