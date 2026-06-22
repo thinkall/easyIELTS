@@ -33,3 +33,19 @@ export interface ReadingTest {
   timeMinutes: number;
   sections: ReadingSection[];
 }
+
+export interface ListeningSection {
+  id: string;
+  name: string;
+  /** The audio transcript, spoken by the player and revealed in review. */
+  script: string;
+  questions: ReadingQuestion[];
+}
+
+export interface ListeningTest {
+  id: string;
+  skill: "listening";
+  title: string;
+  timeMinutes: number;
+  sections: ListeningSection[];
+}
