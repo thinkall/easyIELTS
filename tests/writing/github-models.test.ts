@@ -24,6 +24,14 @@ describe("chatJson", () => {
     expect(result.band).toBe(7);
   });
 
+  it("uses the default temperature for gpt-5 models", async () => {
+    mockFetchOnce(200, { choices: [{ message: { content: JSON.stringify({ band: 7 }) } }] });
+    await chatJson({ system: "s", user: "u", schema, token: "t", model: "openai/gpt-5" });
+    const fetchMock = vi.mocked(fetch);
+    const body = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string);
+    expect(body.temperature).toBeUndefined();
+  });
+
   it("throws GitHubModelsError with the status on a failed response", async () => {
     mockFetchOnce(401, { error: "bad token" });
     await expect(chatJson({ system: "s", user: "u", schema, token: "t" })).rejects.toMatchObject({

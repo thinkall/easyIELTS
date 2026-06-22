@@ -15,6 +15,9 @@ export default function Home() {
         <p className="text-lg text-gray-600 dark:text-gray-300">
           Practice IELTS General Training and reach <strong>Band 7</strong> in all four skills.
         </p>
+        <a href="/connect" className="mt-2 inline-block text-sm text-indigo-600 underline">
+          Connect GitHub Copilot for AI feedback →
+        </a>
       </header>
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {SKILLS.map((s) => {
