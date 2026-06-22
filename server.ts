@@ -8,16 +8,26 @@ const port = Number.parseInt(process.env.PORT ?? "3000", 10);
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-app.prepare().then(() => {
-  const server = createServer((req, res) => {
-    handle(req, res);
-  });
+app
+  .prepare()
+  .then(() => {
+    const server = createServer((req, res) => {
+      handle(req, res);
+    });
 
-  // NOTE: The speaking module plan attaches a WebSocket upgrade handler here:
-  //   server.on("upgrade", (req, socket, head) => { ... /ws/speaking ... });
+    // NOTE: The speaking module plan attaches a WebSocket upgrade handler here:
+    //   server.on("upgrade", (req, socket, head) => { ... /ws/speaking ... });
 
-  server.listen(port, hostname, () => {
-    // eslint-disable-next-line no-console
-    console.log(`> easyIELTS ready on http://${hostname}:${port} (${dev ? "dev" : "prod"})`);
+    server.on("error", (err) => {
+      console.error("[easyIELTS] server error:", err);
+      process.exit(1);
+    });
+
+    server.listen(port, hostname, () => {
+      console.log(`> easyIELTS ready on http://${hostname}:${port} (${dev ? "dev" : "prod"})`);
+    });
+  })
+  .catch((err) => {
+    console.error("[easyIELTS] failed to start:", err);
+    process.exit(1);
   });
-});
