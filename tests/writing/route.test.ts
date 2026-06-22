@@ -1,6 +1,8 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { POST } from "@/app/api/writing/evaluate/route";
+import { _resetRateLimitStore } from "@/server/rate-limit";
 
+beforeEach(() => _resetRateLimitStore());
 afterEach(() => vi.unstubAllGlobals());
 
 function req(body: unknown) {
@@ -40,5 +42,14 @@ describe("POST /api/writing/evaluate", () => {
     })));
     const res = await POST(req({ taskNumber: 1, prompt: "p", response: "r", token: "t" }));
     expect(res.status).toBe(401);
+  });
+
+  it("rate-limits the owner-key path after the limit", async () => {
+    for (let i = 0; i < 10; i++) {
+      const res = await POST(req({ taskNumber: 1, prompt: "p", response: "r" }));
+      expect(res.status).not.toBe(429);
+    }
+    const limited = await POST(req({ taskNumber: 1, prompt: "p", response: "r" }));
+    expect(limited.status).toBe(429);
   });
 });
