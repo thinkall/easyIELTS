@@ -1,3 +1,5 @@
+import "server-only";
+
 import { z } from "zod";
 
 const envSchema = z.object({
@@ -12,9 +14,19 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+/**
+ * Parse and validate environment variables. Empty strings (e.g. from an
+ * unfilled `.env.example` copy) are treated as "unset", so optional keys stay
+ * undefined and defaults apply instead of failing min-length validation.
+ */
 export function parseEnv(source: Record<string, string | undefined> = process.env): Env {
-  return envSchema.parse(source);
+  const normalized: Record<string, string | undefined> = {};
+  for (const key of Object.keys(envSchema.shape)) {
+    const value = source[key];
+    normalized[key] = value === "" ? undefined : value;
+  }
+  return envSchema.parse(normalized);
 }
 
-// Server-only singleton. Importing this from a Client Component must be avoided.
+// Server-only singleton (enforced by `import "server-only"` above).
 export const env: Env = parseEnv();

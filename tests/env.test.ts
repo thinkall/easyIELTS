@@ -14,4 +14,12 @@ describe("parseEnv", () => {
     expect(env.GITHUB_MODELS_TOKEN).toBe("ghp_x");
     expect(env.GEMINI_API_KEY).toBe("g_x");
   });
+
+  it("treats present-but-empty values as unset (no throw)", () => {
+    expect(() => parseEnv({ GITHUB_MODELS_TOKEN: "", GEMINI_API_KEY: "" })).not.toThrow();
+    const env = parseEnv({ GITHUB_MODELS_TOKEN: "", GEMINI_API_KEY: "" });
+    expect(env.GITHUB_MODELS_TOKEN).toBeUndefined();
+    expect(env.GEMINI_API_KEY).toBeUndefined();
+    expect(env.GITHUB_MODELS_MODEL).toBe("openai/gpt-4o");
+  });
 });
