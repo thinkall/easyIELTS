@@ -6,8 +6,9 @@ import type { SpeakingSession, SessionCallbacks, SessionStatus } from "@/lib/spe
 import { createSpeakingSession } from "@/lib/speaking/session";
 import type { SpeakingTest } from "@/lib/content/speaking";
 import { recordAttempt } from "@/lib/storage/adapter";
+import { getSettings } from "@/lib/settings/settings";
 
-type CreateSession = (part: string, cb: SessionCallbacks) => SpeakingSession;
+type CreateSession = (part: string, cb: SessionCallbacks, options?: { geminiApiKey?: string }) => SpeakingSession;
 type UiStatus = SessionStatus | "idle" | "scoring" | "scored";
 
 function formatTime(totalSeconds: number): string {
@@ -62,7 +63,7 @@ export function SpeakingRunner({
       const res = await fetch("/api/speaking/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript: turnsRef.current }),
+        body: JSON.stringify({ transcript: turnsRef.current, ...(getSettings().githubToken ? { token: getSettings().githubToken } : {}) }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -96,7 +97,7 @@ export function SpeakingRunner({
     setTurns([]);
     setResult(null);
     setElapsed(0);
-    const session = createSession(test.part, { onEvent: handleEvent, onStatus: handleStatus });
+    const session = createSession(test.part, { onEvent: handleEvent, onStatus: handleStatus }, { geminiApiKey: getSettings().geminiApiKey });
     sessionRef.current = session;
     try {
       await session.start();
