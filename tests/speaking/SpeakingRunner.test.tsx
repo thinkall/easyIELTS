@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SpeakingRunner } from "@/components/speaking/SpeakingRunner";
 import type { SpeakingSession, SessionCallbacks } from "@/lib/speaking/session";
@@ -32,8 +32,8 @@ describe("SpeakingRunner", () => {
     await userEvent.click(screen.getByRole("button", { name: /start/i }));
     expect(screen.getByLabelText(/elapsed time/i)).toBeInTheDocument();
     // Examiner speaks, candidate answers.
-    f.emit({ type: "output_transcript", text: "What is your name?" } as never);
-    f.emit({ type: "input_transcript", text: "My name is Sam." } as never);
+    act(() => f.emit({ type: "output_transcript", text: "What is your name?" } as never));
+    act(() => f.emit({ type: "input_transcript", text: "My name is Sam." } as never));
     expect(await screen.findByText(/What is your name/)).toBeInTheDocument();
     expect(screen.getByText(/My name is Sam/)).toBeInTheDocument();
 

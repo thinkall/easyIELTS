@@ -7,6 +7,7 @@ import { createSpeakingSession } from "@/lib/speaking/session";
 import type { SpeakingTest } from "@/lib/content/speaking";
 
 type CreateSession = (part: string, cb: SessionCallbacks) => SpeakingSession;
+type UiStatus = SessionStatus | "idle" | "scoring" | "scored";
 
 function formatTime(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
@@ -21,19 +22,25 @@ export function SpeakingRunner({
   test: SpeakingTest;
   createSession?: CreateSession;
 }) {
-  const [status, setStatus] = useState<SessionStatus | "idle" | "scoring">("idle");
+  const [status, setStatus] = useState<UiStatus>("idle");
   const [turns, setTurns] = useState<TranscriptTurn[]>([]);
   const [result, setResult] = useState<SpeakingEvaluation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const sessionRef = useRef<SpeakingSession | null>(null);
+  const turnsRef = useRef<TranscriptTurn[]>([]);
+  const finalizedRef = useRef(false);
+
   const isLive = status === "live" || status === "connecting";
+
   useEffect(() => {
     if (!isLive) return;
     const id = setInterval(() => setElapsed((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, [isLive]);
-  const sessionRef = useRef<SpeakingSession | null>(null);
-  const turnsRef = useRef<TranscriptTurn[]>([]);
+
+  // Backstop: release the mic/socket if the user navigates away mid-session.
+  useEffect(() => () => sessionRef.current?.end(), []);
 
   function addTurn(role: TranscriptTurn["role"], text: string) {
     turnsRef.current = [...turnsRef.current, { role, text }];
@@ -46,21 +53,9 @@ export function SpeakingRunner({
     else if (event.type === "error") setError(event.error);
   }
 
-  async function start() {
-    setError(null);
-    setElapsed(0);
-    const session = createSession(test.part, { onEvent: handleEvent, onStatus: setStatus });
-    sessionRef.current = session;
-    try {
-      await session.start();
-    } catch {
-      setError("Could not access the microphone or connect.");
-      setStatus("error");
-    }
-  }
-
-  async function finish() {
-    sessionRef.current?.end();
+  async function finalize() {
+    if (finalizedRef.current) return;
+    finalizedRef.current = true;
     setStatus("scoring");
     try {
       const res = await fetch("/api/speaking/evaluate", {
@@ -76,30 +71,67 @@ export function SpeakingRunner({
     } catch (e) {
       setError(e instanceof Error ? e.message : "Scoring failed.");
     } finally {
-      setStatus("ended");
+      setStatus("scored");
     }
   }
 
+  // Session status from the audio layer. On end/error with speech recorded,
+  // auto-score; otherwise just reflect the status. Ignored once finalized.
+  function handleStatus(s: SessionStatus) {
+    if (finalizedRef.current) return;
+    if ((s === "ended" || s === "error") && turnsRef.current.length > 0) {
+      void finalize();
+      return;
+    }
+    setStatus(s);
+  }
+
+  async function start() {
+    setError(null);
+    finalizedRef.current = false;
+    turnsRef.current = [];
+    setTurns([]);
+    setResult(null);
+    setElapsed(0);
+    const session = createSession(test.part, { onEvent: handleEvent, onStatus: handleStatus });
+    sessionRef.current = session;
+    try {
+      await session.start();
+    } catch {
+      finalizedRef.current = true;
+      setError("Could not access the microphone or connect. Please allow microphone access and try again.");
+      setStatus("error");
+    }
+  }
+
+  function finish() {
+    sessionRef.current?.end();
+  }
+
+  const showStart = !isLive && status !== "scoring";
+  const showFinish = isLive;
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8">
-      <header>
-        <h1 className="text-2xl font-bold">{test.title}</h1>
-        <p className="text-sm text-amber-600">🎯 Band 7 = wide vocabulary, &gt;50% error-free, natural fluency</p>
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">{test.title}</h1>
+          <p className="text-sm text-amber-600">🎯 Band 7 = wide vocabulary, &gt;50% error-free, natural fluency</p>
+        </div>
+        {isLive && (
+          <p className="font-mono text-sm text-gray-600 dark:text-gray-300" aria-label="elapsed time">
+            ⏱ {formatTime(elapsed)} <span className="text-gray-400">/ 6:00 max</span>
+          </p>
+        )}
       </header>
 
-      {isLive && (
-        <p className="font-mono text-sm text-gray-600 dark:text-gray-300" aria-label="elapsed time">
-          ⏱ {formatTime(elapsed)} <span className="text-gray-400">/ 6:00 max</span>
-        </p>
-      )}
-
-      {status === "idle" && (
+      {showStart && (
         <button onClick={start} className="self-start rounded-lg bg-indigo-600 px-6 py-2 font-medium text-white hover:bg-indigo-700">
-          Start speaking test
+          {status === "idle" ? "Start speaking test" : "Start again"}
         </button>
       )}
       {status === "connecting" && <p className="text-sm text-gray-500">Connecting… allow microphone access.</p>}
-      {isLive && (
+      {showFinish && (
         <button onClick={finish} className="self-start rounded-lg bg-red-600 px-6 py-2 font-medium text-white hover:bg-red-700">
           Finish &amp; get my band
         </button>
