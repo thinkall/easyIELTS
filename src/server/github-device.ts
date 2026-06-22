@@ -60,6 +60,7 @@ export async function pollAccessToken(
       grant_type: "urn:ietf:params:oauth:grant-type:device_code",
     }),
   });
+  if (!res.ok) return { status: "error", error: `http_${res.status}` };
   const data = (await res.json()) as { access_token?: string; error?: string };
   if (data.access_token) return { status: "connected", accessToken: data.access_token };
   if (data.error === "authorization_pending") return { status: "pending" };

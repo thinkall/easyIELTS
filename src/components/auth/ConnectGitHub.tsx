@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Phase = "idle" | "awaiting" | "connected" | "error";
 
@@ -9,12 +9,17 @@ export function ConnectGitHub() {
   const [userCode, setUserCode] = useState("");
   const [verifyUri, setVerifyUri] = useState("");
   const [message, setMessage] = useState("");
+  const pollingRef = useRef(true);
 
   useEffect(() => {
     fetch("/api/auth/github/status")
       .then((r) => r.json())
       .then((d) => { if (d.connected) setPhase("connected"); })
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    return () => { pollingRef.current = false; };
   }, []);
 
   async function start() {
@@ -25,18 +30,26 @@ export function ConnectGitHub() {
     setUserCode(data.userCode);
     setVerifyUri(data.verificationUri);
     setPhase("awaiting");
+    pollingRef.current = true;
     poll(data.interval ?? 5, data.expiresIn ?? 900);
   }
 
   function poll(intervalSec: number, expiresIn: number) {
     const deadline = Date.now() + expiresIn * 1000;
     const tick = async () => {
+      if (!pollingRef.current) return;
       if (Date.now() > deadline) { setPhase("error"); setMessage("Code expired. Try again."); return; }
-      const res = await fetch("/api/auth/github/poll", { method: "POST" });
-      const data = await res.json();
-      if (data.status === "connected") { setPhase("connected"); return; }
-      if (data.status === "error") { setPhase("error"); setMessage("Sign-in failed. Try again."); return; }
-      setTimeout(tick, intervalSec * 1000);
+      let nextDelay = intervalSec * 1000;
+      try {
+        const res = await fetch("/api/auth/github/poll", { method: "POST" });
+        const data = await res.json();
+        if (data.status === "connected") { setPhase("connected"); return; }
+        if (data.status === "error") { setPhase("error"); setMessage("Sign-in failed. Try again."); return; }
+        if (data.status === "slow_down") nextDelay += 5000;
+      } catch {
+        // transient network error — keep polling
+      }
+      if (pollingRef.current) setTimeout(tick, nextDelay);
     };
     setTimeout(tick, intervalSec * 1000);
   }

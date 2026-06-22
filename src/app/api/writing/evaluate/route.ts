@@ -9,7 +9,7 @@ const bodySchema = z.object({
   taskNumber: z.union([z.literal(1), z.literal(2)]),
   prompt: z.string().min(1),
   response: z.string().min(1),
-  token: z.string().optional(),
+  token: z.string().min(1).optional(),
 });
 
 export async function POST(request: Request) {

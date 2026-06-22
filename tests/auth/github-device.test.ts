@@ -31,6 +31,25 @@ describe("pollAccessToken", () => {
     expect(result).toEqual({ status: "pending" });
   });
 
+  it("reports an error on a non-OK HTTP response", async () => {
+    const fetchImpl = vi.fn(async () => ({ ok: false, status: 503, json: async () => ({}), text: async () => "err" })) as unknown as typeof fetch;
+    const result = await pollAccessToken("dc", "client123", fetchImpl);
+    expect(result.status).toBe("error");
+  });
+
+  it("does not parse JSON from a non-OK HTTP response", async () => {
+    const fetchImpl = vi.fn(async () => ({
+      ok: false,
+      status: 503,
+      json: async () => {
+        throw new Error("html response");
+      },
+      text: async () => "err",
+    })) as unknown as typeof fetch;
+    const result = await pollAccessToken("dc", "client123", fetchImpl);
+    expect(result).toEqual({ status: "error", error: "http_503" });
+  });
+
   it("reports an error for terminal failures", async () => {
     const fetchImpl = vi.fn(async () => jsonResponse({ error: "expired_token" })) as unknown as typeof fetch;
     const result = await pollAccessToken("dc", "client123", fetchImpl);
