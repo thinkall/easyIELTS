@@ -9,6 +9,11 @@ describe("normalizeAnswer", () => {
     expect(normalizeAnswer("well-known.")).toBe("well-known");
     expect(normalizeAnswer("o'clock,")).toBe("o'clock");
   });
+  it("strips punctuation on BOTH ends (guards the global regex flag)", () => {
+    expect(normalizeAnswer('"library"')).toBe("library");
+    expect(normalizeAnswer("...yes!!!")).toBe("yes");
+    expect(normalizeAnswer("!!!")).toBe("");
+  });
 });
 
 describe("wordCount", () => {
