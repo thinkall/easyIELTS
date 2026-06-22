@@ -5,6 +5,7 @@ import { EventEmitter } from "node:events";
 
 const fakeBrowsers: FakeSocket[] = [];
 let geminiConnections = 0;
+const IDLE_TIMEOUT_MS = 90 * 1000;
 
 class FakeSocket extends EventEmitter {
   static OPEN = 1;
@@ -50,6 +51,7 @@ function emitUpgrade(server: EventEmitter, url: string, socket: Partial<Duplex> 
 }
 
 afterEach(async () => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   fakeBrowsers.length = 0;
   geminiConnections = 0;
@@ -79,5 +81,38 @@ describe("attachSpeakingProxy", () => {
     emitUpgrade(server, "/ws/other", socket as Partial<Duplex>);
 
     expect(socket.destroy).toHaveBeenCalledOnce();
+  });
+
+  it("closes idle browser sessions when the browser sends nothing", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("GEMINI_API_KEY", "key");
+    const { attachSpeakingProxy } = await import("@/server/speaking-proxy");
+    const server = makeServer();
+    attachSpeakingProxy(server as Server);
+
+    emitUpgrade(server, "/ws/speaking?part=1");
+    vi.advanceTimersByTime(IDLE_TIMEOUT_MS);
+
+    expect(JSON.parse(fakeBrowsers[0].sent[0])).toEqual({ type: "session_end", reason: "idle_timeout" });
+    expect(fakeBrowsers[0].readyState).toBe(3);
+  });
+
+  it("resets the idle timeout on any browser message", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("GEMINI_API_KEY", "key");
+    const { attachSpeakingProxy } = await import("@/server/speaking-proxy");
+    const server = makeServer();
+    attachSpeakingProxy(server as Server);
+
+    emitUpgrade(server, "/ws/speaking?part=1");
+    vi.advanceTimersByTime(IDLE_TIMEOUT_MS - 1);
+    fakeBrowsers[0].emit("message", Buffer.from("not-json"));
+    vi.advanceTimersByTime(IDLE_TIMEOUT_MS - 1);
+
+    expect(fakeBrowsers[0].sent).toEqual([]);
+
+    vi.advanceTimersByTime(1);
+
+    expect(JSON.parse(fakeBrowsers[0].sent[0])).toEqual({ type: "session_end", reason: "idle_timeout" });
   });
 });

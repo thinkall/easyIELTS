@@ -8,6 +8,7 @@ import type { SpeakingPart } from "@/lib/speaking/types";
 const GEMINI_WS =
   "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
 const MAX_SESSION_MS = 6 * 60 * 1000; // hard cost cap
+const IDLE_TIMEOUT_MS = 90 * 1000; // close if the browser is silent for 90s
 const SESSION_LIMIT = 10;
 const SESSION_WINDOW_MS = 60 * 60 * 1000;
 
@@ -76,15 +77,22 @@ function bridge(browser: WebSocket, req: IncomingMessage): void {
   const gemini = new WebSocket(`${GEMINI_WS}?key=${apiKey}`);
 
   let closed = false;
+  let idle: ReturnType<typeof setTimeout>;
+  const resetIdle = () => {
+    clearTimeout(idle);
+    idle = setTimeout(() => cleanup("idle_timeout"), IDLE_TIMEOUT_MS);
+  };
   const cleanup = (reason: string) => {
     if (closed) return;
     closed = true;
     clearTimeout(cap);
+    clearTimeout(idle);
     send(browser, { type: "session_end", reason });
     try { browser.close(); } catch { /* ignore */ }
     try { gemini.close(); } catch { /* ignore */ }
   };
   const cap = setTimeout(() => cleanup("time_cap"), MAX_SESSION_MS);
+  resetIdle();
 
   gemini.on("open", () => {
     gemini.send(JSON.stringify(buildSetupMessage(model, buildExaminerSystemInstruction(part))));
@@ -98,6 +106,7 @@ function bridge(browser: WebSocket, req: IncomingMessage): void {
   gemini.on("error", () => { send(browser, { type: "error", error: "gemini_error" }); cleanup("gemini_error"); });
 
   browser.on("message", (data: Buffer) => {
+    resetIdle();
     let msg: { type?: string; data?: string; text?: string };
     try { msg = JSON.parse(data.toString()); } catch { return; }
     if (gemini.readyState !== WebSocket.OPEN) return;
