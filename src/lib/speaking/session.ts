@@ -1,5 +1,8 @@
 import type { SpeakingEvent } from "./types";
 import { floatTo16BitPCM, int16ToBase64, base64ToInt16, downsample } from "./pcm";
+import { buildSetupMessage, parseServerMessage, encodeAudioChunk, encodeTextTurn } from "./gemini-live";
+import { buildExaminerSystemInstruction } from "./examiner";
+import type { SpeakingPart } from "./types";
 
 export type SessionStatus = "connecting" | "live" | "ended" | "error";
 
@@ -16,9 +19,22 @@ export interface SessionCallbacks {
 
 const TARGET_INPUT_RATE = 16000;
 const OUTPUT_RATE = 24000;
+const DIRECT_GEMINI_MODEL = "gemini-3.1-flash-live-preview";
+const GEMINI_WS = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
+
+/** Build a function that returns the SpeakingEvent(s) for a raw socket message. */
+export interface SpeakingSessionOptions {
+  /** If set, connect the browser directly to Gemini (user's own key) instead of the proxy. */
+  geminiApiKey?: string;
+}
 
 /** Create a live speaking session backed by the proxy WebSocket + Web Audio. */
-export function createSpeakingSession(part: string, cb: SessionCallbacks): SpeakingSession {
+export function createSpeakingSession(
+  part: string,
+  cb: SessionCallbacks,
+  options: SpeakingSessionOptions = {},
+): SpeakingSession {
+  const direct = Boolean(options.geminiApiKey);
   let ws: WebSocket | null = null;
   let audioCtx: AudioContext | null = null;
   let playerCtx: AudioContext | null = null;
@@ -45,21 +61,40 @@ export function createSpeakingSession(part: string, cb: SessionCallbacks): Speak
     releaseResources();
   }
 
+  function emit(event: SpeakingEvent) {
+    if (event.type === "audio") playAudio(event.data);
+    else if (event.type === "interrupted") playerNode?.port.postMessage("flush");
+    cb.onEvent(event);
+  }
+
   async function start(): Promise<void> {
     cb.onStatus("connecting");
     try {
-      const proto = location.protocol === "https:" ? "wss" : "ws";
-      ws = new WebSocket(`${proto}://${location.host}/ws/speaking?part=${encodeURIComponent(part)}`);
-      ws.onopen = () => { if (!closed) cb.onStatus("live"); };
+      if (direct) {
+        ws = new WebSocket(`${GEMINI_WS}?key=${options.geminiApiKey}`);
+        ws.onopen = () => {
+          if (closed) return;
+          ws!.send(JSON.stringify(buildSetupMessage(DIRECT_GEMINI_MODEL, buildExaminerSystemInstruction(part as SpeakingPart))));
+          cb.onStatus("live");
+        };
+        ws.onmessage = (e) => {
+          let raw: unknown;
+          try { raw = JSON.parse(e.data); } catch { return; }
+          if (typeof raw !== "object" || raw === null) return;
+          for (const event of parseServerMessage(raw as never)) emit(event);
+        };
+      } else {
+        const proto = location.protocol === "https:" ? "wss" : "ws";
+        ws = new WebSocket(`${proto}://${location.host}/ws/speaking?part=${encodeURIComponent(part)}`);
+        ws.onopen = () => { if (!closed) cb.onStatus("live"); };
+        ws.onmessage = (e) => {
+          let event: SpeakingEvent;
+          try { event = JSON.parse(e.data); } catch { return; }
+          emit(event);
+        };
+      }
       ws.onclose = () => { teardown(); cb.onStatus("ended"); };
       ws.onerror = () => { teardown(); cb.onStatus("error"); };
-      ws.onmessage = (e) => {
-        let event: SpeakingEvent;
-        try { event = JSON.parse(e.data); } catch { return; }
-        if (event.type === "audio") playAudio(event.data);
-        else if (event.type === "interrupted") playerNode?.port.postMessage("flush");
-        cb.onEvent(event);
-      };
 
       micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       if (closed) { releaseResources(); return; }
@@ -75,7 +110,8 @@ export function createSpeakingSession(part: string, cb: SessionCallbacks): Speak
         const frame = ev.data as Float32Array;
         const reduced = downsample(frame, audioCtx.sampleRate, TARGET_INPUT_RATE);
         const base64 = int16ToBase64(floatTo16BitPCM(reduced));
-        if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "audio", data: base64 }));
+        const payload = direct ? encodeAudioChunk(base64) : { type: "audio", data: base64 };
+        if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
       };
       source.connect(recorderNode).connect(audioCtx.destination);
 
@@ -100,7 +136,8 @@ export function createSpeakingSession(part: string, cb: SessionCallbacks): Speak
   }
 
   function sendText(text: string): void {
-    if (!closed && ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "text", text }));
+    if (closed || !ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify(direct ? encodeTextTurn(text) : { type: "text", text }));
   }
 
   function end(): void {
