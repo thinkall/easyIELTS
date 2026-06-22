@@ -3,15 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "cross-env NODE_ENV=development tsx watch server.ts",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "start": "cross-env NODE_ENV=production tsx server.ts",
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "cross-env": "^10.1.0",
     "next": "16.2.9",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "tsx": "^4.22.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
