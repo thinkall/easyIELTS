@@ -1,14 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getSettings, saveSettings } from "@/lib/settings/settings";
 import { getStorage } from "@/lib/storage/adapter";
 import { ConnectGitHub } from "@/components/auth/ConnectGitHub";
 
 export function SettingsForm() {
-  const [geminiApiKey, setGeminiApiKey] = useState(() => getSettings().geminiApiKey ?? "");
-  const [githubToken, setGithubToken] = useState(() => getSettings().githubToken ?? "");
+  const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [githubToken, setGithubToken] = useState("");
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const s = getSettings();
+    queueMicrotask(() => {
+      setGeminiApiKey(s.geminiApiKey ?? "");
+      setGithubToken(s.githubToken ?? "");
+    });
+  }, []);
 
   function save() {
     saveSettings({ geminiApiKey, githubToken });
@@ -16,11 +24,12 @@ export function SettingsForm() {
     setTimeout(() => setSaved(false), 2000);
   }
 
-  function clearData() {
+  async function clearData() {
     getStorage().clear();
     saveSettings({ geminiApiKey: "", githubToken: "" });
     setGeminiApiKey("");
     setGithubToken("");
+    try { await fetch("/api/auth/github/logout", { method: "POST" }); } catch { /* ignore */ }
   }
 
   return (

@@ -87,6 +87,9 @@ export function SpeakingRunner({
       void finalize();
       return;
     }
+    if (s === "ended" || s === "error") {
+      setError("The session ended before any speech was recorded. If you used your own Gemini key, please check that it is valid.");
+    }
     setStatus(s);
   }
 
@@ -111,6 +114,14 @@ export function SpeakingRunner({
   function finish() {
     sessionRef.current?.end();
   }
+
+  const finishRef = useRef(finish);
+  useEffect(() => {
+    finishRef.current = finish;
+  });
+  useEffect(() => {
+    if (isLive && elapsed >= 360) finishRef.current();
+  }, [elapsed, isLive]);
 
   const showStart = !isLive && status !== "scoring";
   const showFinish = isLive;
