@@ -24,7 +24,11 @@ export default function Home() {
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{s.target}</p>
             </div>
           );
-          const href = s.name === "Reading" ? "/reading" : s.name === "Listening" ? "/listening" : null;
+          const href =
+            s.name === "Reading" ? "/reading"
+            : s.name === "Listening" ? "/listening"
+            : s.name === "Writing" ? "/writing"
+            : null;
           return href ? (
             <Link key={s.name} href={href}>{card}</Link>
           ) : (
