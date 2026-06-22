@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Stand up a running, tested Next.js 15 (App Router, TypeScript) skeleton with a custom Node server (ready for the speaking WebSocket proxy later), Tailwind CSS, environment config, the project directory layout, and a green Vitest test run.
+**Goal:** Stand up a running, tested Next.js 16 (App Router, TypeScript) skeleton with a custom Node server (ready for the speaking WebSocket proxy later), Tailwind CSS, environment config, the project directory layout, and a green Vitest test run.
 
 **Architecture:** A single Next.js app served by a custom `server.ts` (Node `http` + Next request handler) so we can later attach a `/ws/speaking` WebSocket upgrade handler. Pure logic lives under `src/lib`, server-only code under `src/server`, UI under `src/app` and `src/components`. Vitest is the test runner (jsdom env, `@/*` path alias).
 
