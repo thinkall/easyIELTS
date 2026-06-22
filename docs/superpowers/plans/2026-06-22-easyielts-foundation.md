@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Stand up a running, tested Next.js 15 (App Router, TypeScript) skeleton with a custom Node server (ready for the speaking WebSocket proxy later), Tailwind CSS, environment config, the project directory layout, and a green Vitest test run.
+**Goal:** Stand up a running, tested Next.js 16 (App Router, TypeScript) skeleton with a custom Node server (ready for the speaking WebSocket proxy later), Tailwind CSS, environment config, the project directory layout, and a green Vitest test run.
 
 **Architecture:** A single Next.js app served by a custom `server.ts` (Node `http` + Next request handler) so we can later attach a `/ws/speaking` WebSocket upgrade handler. Pure logic lives under `src/lib`, server-only code under `src/server`, UI under `src/app` and `src/components`. Vitest is the test runner (jsdom env, `@/*` path alias).
 
@@ -120,7 +120,6 @@ Expected: both packages added to `dependencies`.
 Create `C:\code\easyIELTS\server.ts`:
 ```ts
 import { createServer } from "node:http";
-import { parse } from "node:url";
 import next from "next";
 
 const dev = process.env.NODE_ENV !== "production";
@@ -132,8 +131,7 @@ const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {
-    const parsedUrl = parse(req.url ?? "/", true);
-    handle(req, res, parsedUrl);
+    handle(req, res);
   });
 
   // NOTE: The speaking module plan attaches a WebSocket upgrade handler here:
@@ -141,20 +139,21 @@ app.prepare().then(() => {
 
   server.listen(port, hostname, () => {
     // eslint-disable-next-line no-console
-    console.log(`> easyIELTS ready on http://${hostname}:${port}`);
+    console.log(`> easyIELTS ready on http://${hostname}:${port} (${dev ? "dev" : "prod"})`);
   });
 });
 ```
+(This matches the Next.js 16 bundled custom-server guide at `node_modules/next/dist/docs/01-app/02-guides/custom-server.md`. Turbopack is enabled by default in dev via the programmatic API.)
 
 - [ ] **Step 3: Point npm scripts at the custom server**
 
-In `package.json`, replace the `scripts` block's `dev` and `start` so Next is served by `server.ts` (keep `build` and `lint` as generated):
+In `package.json`, replace the `scripts` block's `dev` and `start` so Next is served by `server.ts`. **Keep the generated `"lint": "eslint"`** (Next 16 removed `next lint`):
 ```json
 "scripts": {
   "dev": "cross-env NODE_ENV=development tsx watch server.ts",
   "build": "next build",
   "start": "cross-env NODE_ENV=production tsx server.ts",
-  "lint": "next lint",
+  "lint": "eslint",
   "test": "vitest run",
   "test:watch": "vitest"
 }
