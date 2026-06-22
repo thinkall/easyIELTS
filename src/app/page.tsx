@@ -31,6 +31,7 @@ export default function Home() {
             s.name === "Reading" ? "/reading"
             : s.name === "Listening" ? "/listening"
             : s.name === "Writing" ? "/writing"
+            : s.name === "Speaking" ? "/speaking"
             : null;
           return href ? (
             <Link key={s.name} href={href}>{card}</Link>
