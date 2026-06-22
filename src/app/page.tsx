@@ -1,6 +1,6 @@
 const SKILLS = [
-  { name: "Listening", target: <>Band <span>7</span> = 30-31 / 40</> },
-  { name: "Reading", target: <>Band <span>7</span> = 34-35 / 40 (GT)</> },
+  { name: "Listening", target: "Band 7 = 30-31 / 40" },
+  { name: "Reading", target: "Band 7 = 34-35 / 40 (GT)" },
   { name: "Writing", target: "AI-scored, 4 criteria" },
   { name: "Speaking", target: "Live AI examiner" },
 ] as const;
