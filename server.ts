@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { loadEnvConfig } from "@next/env";
 import next from "next";
+import { attachSpeakingProxy } from "@/server/speaking-proxy";
 
 const dev = process.env.NODE_ENV !== "production";
 
@@ -23,8 +24,8 @@ app
       handle(req, res);
     });
 
-    // NOTE: The speaking module plan attaches a WebSocket upgrade handler here:
-    //   server.on("upgrade", (req, socket, head) => { ... /ws/speaking ... });
+    // Live speaking proxy: browser <-> our server <-> Gemini Live (key stays server-side).
+    attachSpeakingProxy(server);
 
     server.on("error", (err) => {
       console.error("[easyIELTS] server error:", err);
