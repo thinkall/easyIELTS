@@ -5,7 +5,14 @@ export function getCookie(request: Request, name: string): string | undefined {
   if (!header) return undefined;
   for (const part of header.split(";")) {
     const [k, ...v] = part.trim().split("=");
-    if (k === name) return decodeURIComponent(v.join("="));
+    if (k === name) {
+      const raw = v.join("=");
+      try {
+        return decodeURIComponent(raw);
+      } catch {
+        return raw;
+      }
+    }
   }
   return undefined;
 }

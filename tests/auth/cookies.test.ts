@@ -8,6 +8,12 @@ describe("cookies", () => {
     expect(getCookie(req, "missing")).toBeUndefined();
   });
 
+  it("returns the raw value when a cookie is malformed-percent-encoded (no throw)", () => {
+    const req = new Request("http://x", { headers: { cookie: "eielts_gh=%E0%A4%A" } });
+    expect(() => getCookie(req, "eielts_gh")).not.toThrow();
+    expect(getCookie(req, "eielts_gh")).toBe("%E0%A4%A");
+  });
+
   it("serializes an httpOnly cookie with attributes", () => {
     const c = serializeCookie("eielts_gh", "tok", { maxAge: 60, httpOnly: true, secure: true });
     expect(c).toContain("eielts_gh=tok");
