@@ -1,10 +1,12 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { WritingRunner } from "@/components/writing/WritingRunner";
 import { getWritingTest } from "@/lib/content/writing";
+import { getStorage } from "@/lib/storage/adapter";
 
 const test = getWritingTest("gt-writing-001")!;
+beforeEach(() => localStorage.clear());
 afterEach(() => vi.unstubAllGlobals());
 
 const taskEval = (n: 1 | 2) => ({
@@ -45,5 +47,27 @@ describe("WritingRunner", () => {
     expect(await screen.findByText(/Task 2 failed/)).toBeInTheDocument();
     expect(screen.getByText(/Task 1 band: 7\.0/)).toBeInTheDocument();
     expect(screen.getByText(/expand ideas/)).toBeInTheDocument();
+  });
+
+  it("records a writing attempt only once when submitted twice", async () => {
+    let call = 0;
+    const fetchMock = vi.fn(async () => {
+      call += 1;
+      const taskNumber = call % 2 === 1 ? 1 : 2;
+      return { ok: true, status: 200, json: async () => taskEval(taskNumber) };
+    });
+    vi.stubGlobal(
+      "fetch",
+      fetchMock,
+    );
+    render(<WritingRunner test={test} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /submit for evaluation/i }));
+    expect(await screen.findByText(/Overall Writing band/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /submit for evaluation/i }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
+
+    expect(getStorage().listAttempts().filter((attempt) => attempt.skill === "writing")).toHaveLength(1);
   });
 });

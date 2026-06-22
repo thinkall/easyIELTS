@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { writingBand } from "@/lib/ielts/aggregate";
 import { wordCount } from "@/lib/scoring/normalize";
 import { recordAttempt } from "@/lib/storage/adapter";
@@ -34,6 +34,7 @@ export function WritingRunner({ test }: { test: WritingTest }) {
   const [evals, setEvals] = useState<Evaluations>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const recordedRef = useRef(false);
 
   const overall =
     evals[1] && evals[2] ? writingBand(evals[1]!.taskBand, evals[2]!.taskBand) : null;
@@ -49,7 +50,8 @@ export function WritingRunner({ test }: { test: WritingTest }) {
         setEvals((prev) => ({ ...prev, [task.taskNumber]: evaluation }));
       }
       const t1 = next[1]; const t2 = next[2];
-      if (t1 && t2) {
+      if (t1 && t2 && !recordedRef.current) {
+        recordedRef.current = true;
         recordAttempt({ skill: "writing", testId: test.id, title: test.title, band: writingBand(t1.taskBand, t2.taskBand) });
       }
     } catch (e) {
