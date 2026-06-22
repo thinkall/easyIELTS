@@ -29,7 +29,7 @@ export const communityHallTest: ListeningTest = {
         { id: "l2", number: 2, type: "sentence_completion", wordLimit: 1,
           prompt: "The main hall is free from ______ o'clock.", accepted: ["two", "2"] },
         { id: "l3", number: 3, type: "sentence_completion", wordLimit: 1,
-          prompt: "Number of children expected: ______.", accepted: ["twenty-five", "twenty five", "25"] },
+          prompt: "Number of children expected: ______.", accepted: ["twenty-five", "25"] },
         { id: "l4", number: 4, type: "sentence_completion", wordLimit: 1,
           prompt: "Afternoon rate: £______ for three hours.", accepted: ["forty", "40"] },
         { id: "l5", number: 5, type: "sentence_completion", wordLimit: 1,
