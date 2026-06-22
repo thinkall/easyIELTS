@@ -26,15 +26,23 @@ export function createSpeakingSession(part: string, cb: SessionCallbacks): Speak
   let playerNode: AudioWorkletNode | null = null;
   let closed = false;
 
-  // Idempotent release of every resource. Safe to call from any path.
-  function teardown(): void {
-    if (closed) return;
-    closed = true;
-    try { ws?.send(JSON.stringify({ type: "end" })); } catch { /* ignore */ }
+  // Release every acquired resource. Safe to call repeatedly (all ops tolerate
+  // being already-stopped/closed), so it also cleans up resources that were
+  // acquired *after* teardown set `closed` (the connecting-window race).
+  function releaseResources(): void {
     try { ws?.close(); } catch { /* ignore */ }
     micStream?.getTracks().forEach((t) => t.stop());
     audioCtx?.close().catch(() => {});
     playerCtx?.close().catch(() => {});
+  }
+
+  // Idempotent: marks the session closed (so start() bails after its awaits)
+  // and releases whatever exists now.
+  function teardown(): void {
+    if (closed) return;
+    closed = true;
+    try { ws?.send(JSON.stringify({ type: "end" })); } catch { /* ignore */ }
+    releaseResources();
   }
 
   async function start(): Promise<void> {
@@ -54,8 +62,12 @@ export function createSpeakingSession(part: string, cb: SessionCallbacks): Speak
       };
 
       micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (closed) { releaseResources(); return; }
+
       audioCtx = new AudioContext();
       await audioCtx.audioWorklet.addModule("/worklets/recorder-processor.js");
+      if (closed) { releaseResources(); return; }
+
       const source = audioCtx.createMediaStreamSource(micStream);
       const recorderNode = new AudioWorkletNode(audioCtx, "recorder-processor");
       recorderNode.port.onmessage = (ev) => {
@@ -69,10 +81,12 @@ export function createSpeakingSession(part: string, cb: SessionCallbacks): Speak
 
       playerCtx = new AudioContext({ sampleRate: OUTPUT_RATE });
       await playerCtx.audioWorklet.addModule("/worklets/player-processor.js");
+      if (closed) { releaseResources(); return; }
+
       playerNode = new AudioWorkletNode(playerCtx, "player-processor");
       playerNode.connect(playerCtx.destination);
     } catch (err) {
-      teardown(); // release whatever was partially acquired before rethrowing
+      teardown();
       throw err;
     }
   }
