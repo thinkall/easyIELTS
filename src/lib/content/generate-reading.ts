@@ -24,9 +24,9 @@ const llmSchema = z.object({
       z.object({
         type: z.enum(QUESTION_TYPES),
         prompt: z.string().min(1),
-        options: z.array(z.string().min(1)).optional(),
+        options: z.array(z.string().min(1)).nullable().optional(),
         accepted: z.array(z.string().min(1)).min(1),
-        wordLimit: z.number().int().positive().optional(),
+        wordLimit: z.number().int().positive().nullable().optional(),
       }),
     )
     .min(5),
@@ -45,13 +45,13 @@ const JSON_SCHEMA: Record<string, unknown> = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["type", "prompt", "accepted"],
+        required: ["type", "prompt", "options", "accepted", "wordLimit"],
         properties: {
           type: { type: "string", enum: [...QUESTION_TYPES] },
           prompt: { type: "string" },
-          options: { type: "array", items: { type: "string" } },
+          options: { anyOf: [{ type: "array", items: { type: "string" } }, { type: "null" }] },
           accepted: { type: "array", items: { type: "string" } },
-          wordLimit: { type: "number" },
+          wordLimit: { anyOf: [{ type: "number" }, { type: "null" }] },
         },
       },
     },
@@ -92,7 +92,7 @@ export async function generateReadingTest(topic: string, chat: GenerateChatFn): 
     type: q.type,
     prompt: q.prompt,
     accepted: q.accepted,
-    wordLimit: q.wordLimit,
+    wordLimit: q.wordLimit ?? undefined,
     options: q.options ? q.options.map(parseOption) : undefined,
   }));
 
