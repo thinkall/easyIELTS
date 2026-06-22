@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ListeningTest } from "@/lib/content/types";
 import { scoreListeningTest, type ListeningResult } from "@/lib/listening/score-listening";
+import { recordAttempt } from "@/lib/storage/adapter";
 import { QuestionView } from "@/components/reading/QuestionView";
 import { ResultsSummary } from "@/components/reading/ResultsSummary";
 import { AudioPlayer } from "./AudioPlayer";
@@ -19,7 +20,19 @@ export function ListeningRunner({ test }: { test: ListeningTest }) {
   const [secondsLeft, setSecondsLeft] = useState(test.timeMinutes * 60);
 
   const answersRef = useRef(answers);
+  const recordedRef = useRef(false);
   const submitted = result !== null;
+
+  const handleSubmit = useCallback(() => {
+    if (recordedRef.current) return;
+    recordedRef.current = true;
+    const scored = scoreListeningTest(test, answersRef.current);
+    setResult(scored);
+    recordAttempt({
+      skill: "listening", testId: test.id, title: test.title,
+      band: scored.band, raw: scored.raw, total: scored.total, estimated: scored.bandIsEstimated,
+    });
+  }, [test]);
 
   useEffect(() => {
     answersRef.current = answers;
@@ -28,12 +41,12 @@ export function ListeningRunner({ test }: { test: ListeningTest }) {
   useEffect(() => {
     if (submitted) return;
     if (secondsLeft <= 0) {
-      setResult((prev) => prev ?? scoreListeningTest(test, answersRef.current));
+      handleSubmit();
       return;
     }
     const timer = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
     return () => clearTimeout(timer);
-  }, [secondsLeft, submitted, test]);
+  }, [handleSubmit, secondsLeft, submitted]);
 
   const resultById = useMemo(() => {
     if (!result) return {} as Record<string, { correct: boolean; accepted: string[] }>;
@@ -43,10 +56,11 @@ export function ListeningRunner({ test }: { test: ListeningTest }) {
   }, [result]);
 
   function setAnswer(id: string, value: string) {
-    setAnswers((prev) => ({ ...prev, [id]: value }));
-  }
-  function handleSubmit() {
-    setResult((prev) => prev ?? scoreListeningTest(test, answers));
+    setAnswers((prev) => {
+      const next = { ...prev, [id]: value };
+      answersRef.current = next;
+      return next;
+    });
   }
 
   return (

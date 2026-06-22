@@ -5,6 +5,7 @@ import type { SpeakingEvent, TranscriptTurn, SpeakingEvaluation } from "@/lib/sp
 import type { SpeakingSession, SessionCallbacks, SessionStatus } from "@/lib/speaking/session";
 import { createSpeakingSession } from "@/lib/speaking/session";
 import type { SpeakingTest } from "@/lib/content/speaking";
+import { recordAttempt } from "@/lib/storage/adapter";
 
 type CreateSession = (part: string, cb: SessionCallbacks) => SpeakingSession;
 type UiStatus = SessionStatus | "idle" | "scoring" | "scored";
@@ -67,7 +68,9 @@ export function SpeakingRunner({
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? `Scoring failed (${res.status})`);
       }
-      setResult(await res.json());
+      const scored = await res.json() as SpeakingEvaluation;
+      setResult(scored);
+      recordAttempt({ skill: "speaking", testId: test.id, title: test.title, band: scored.speakingBand });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Scoring failed.");
     } finally {
