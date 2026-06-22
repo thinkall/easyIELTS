@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReadingTest } from "@/lib/content/types";
 import { scoreReadingTest, type ReadingResult } from "@/lib/reading/score-reading";
 import { QuestionView } from "./QuestionView";
@@ -17,25 +17,23 @@ export function ReadingRunner({ test }: { test: ReadingTest }) {
   const [result, setResult] = useState<ReadingResult | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(test.timeMinutes * 60);
 
+  // Mirror the latest answers in a ref so the countdown effect does NOT depend
+  // on `answers` (otherwise every keystroke clears and reschedules the 1s timer,
+  // freezing the clock while the candidate types).
+  const answersRef = useRef(answers);
+
   const submitted = result !== null;
 
-  function handleSubmit() {
-    setResult((prev) => prev ?? scoreReadingTest(test, answers));
-  }
-
-  // Countdown; auto-submit at zero.
+  // Countdown; auto-submit at zero. Reads answers via the ref, never `answers`.
   useEffect(() => {
     if (submitted) return;
-    const timer = setTimeout(() => {
-      if (secondsLeft <= 1) {
-        setSecondsLeft(0);
-        setResult((prev) => prev ?? scoreReadingTest(test, answers));
-        return;
-      }
-      setSecondsLeft((s) => s - 1);
-    }, 1000);
+    if (secondsLeft <= 0) {
+      setResult((prev) => prev ?? scoreReadingTest(test, answersRef.current));
+      return;
+    }
+    const timer = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
     return () => clearTimeout(timer);
-  }, [answers, secondsLeft, submitted, test]);
+  }, [secondsLeft, submitted, test]);
 
   const resultById = useMemo(() => {
     if (!result) return {} as Record<string, { correct: boolean; accepted: string[] }>;
@@ -45,14 +43,22 @@ export function ReadingRunner({ test }: { test: ReadingTest }) {
   }, [result]);
 
   function setAnswer(id: string, value: string) {
-    setAnswers((prev) => ({ ...prev, [id]: value }));
+    setAnswers((prev) => {
+      const next = { ...prev, [id]: value };
+      answersRef.current = next;
+      return next;
+    });
+  }
+
+  function handleSubmit() {
+    setResult((prev) => prev ?? scoreReadingTest(test, answersRef.current));
   }
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{test.title.split(" — ")[0]}</h1>
+          <h1 className="text-2xl font-bold">{test.title}</h1>
           <p className="text-sm text-amber-600">🎯 Band 7 (GT Reading) = 34–35 / 40</p>
         </div>
         {!submitted && (
