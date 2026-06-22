@@ -3,6 +3,13 @@ import { loadEnvConfig } from "@next/env";
 import next from "next";
 import { attachSpeakingProxy } from "@/server/speaking-proxy";
 
+process.on("uncaughtException", (err) => {
+  console.error("[easyIELTS] uncaught exception:", err);
+});
+process.on("unhandledRejection", (err) => {
+  console.error("[easyIELTS] unhandled rejection:", err);
+});
+
 const dev = process.env.NODE_ENV !== "production";
 
 // Load .env files (e.g. .env.local) into process.env BEFORE reading any vars,

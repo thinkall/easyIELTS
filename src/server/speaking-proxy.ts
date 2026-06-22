@@ -35,6 +35,16 @@ export function _resetSpeakingProxyLimitStore(): void {
   sessionWindows.clear();
 }
 
+export function _speakingProxyLimitSize(): number {
+  return sessionWindows.size;
+}
+
+function evictExpired(now: number): void {
+  for (const [key, state] of sessionWindows) {
+    if (now >= state.resetAt) sessionWindows.delete(key);
+  }
+}
+
 function send(ws: WebSocket, payload: unknown): void {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
 }
@@ -51,6 +61,7 @@ function clientKey(req: IncomingMessage): string {
 function allowSession(key: string, now = Date.now()): boolean {
   const existing = sessionWindows.get(key);
   if (!existing || now >= existing.resetAt) {
+    evictExpired(now);
     sessionWindows.set(key, { count: 1, resetAt: now + SESSION_WINDOW_MS });
     return true;
   }
@@ -98,23 +109,29 @@ function bridge(browser: WebSocket, req: IncomingMessage): void {
     gemini.send(JSON.stringify(buildSetupMessage(model, buildExaminerSystemInstruction(part))));
   });
   gemini.on("message", (data: Buffer) => {
-    let parsed: unknown;
-    try { parsed = JSON.parse(data.toString()); } catch { return; }
-    for (const event of parseServerMessage(parsed as never)) send(browser, event);
+    try {
+      const parsed: unknown = JSON.parse(data.toString());
+      if (typeof parsed !== "object" || parsed === null) return;
+      for (const event of parseServerMessage(parsed as never)) send(browser, event);
+    } catch {
+      // Ignore malformed upstream frames.
+    }
   });
   gemini.on("close", () => cleanup("gemini_closed"));
   gemini.on("error", () => { send(browser, { type: "error", error: "gemini_error" }); cleanup("gemini_error"); });
 
   browser.on("message", (data: Buffer) => {
     resetIdle();
-    let msg: { type?: string; data?: string; text?: string };
+    let msg: unknown;
     try { msg = JSON.parse(data.toString()); } catch { return; }
+    if (typeof msg !== "object" || msg === null) return;
+    const m = msg as { type?: string; data?: string; text?: string };
     if (gemini.readyState !== WebSocket.OPEN) return;
-    if (msg.type === "audio" && typeof msg.data === "string") {
-      gemini.send(JSON.stringify(encodeAudioChunk(msg.data)));
-    } else if (msg.type === "text" && typeof msg.text === "string") {
-      gemini.send(JSON.stringify(encodeTextTurn(msg.text)));
-    } else if (msg.type === "end") {
+    if (m.type === "audio" && typeof m.data === "string") {
+      gemini.send(JSON.stringify(encodeAudioChunk(m.data)));
+    } else if (m.type === "text" && typeof m.text === "string") {
+      gemini.send(JSON.stringify(encodeTextTurn(m.text)));
+    } else if (m.type === "end") {
       cleanup("client_end");
     }
   });
