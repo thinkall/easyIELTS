@@ -41,15 +41,10 @@ export function WritingRunner({ test }: { test: WritingTest }) {
     setBusy(true);
     setError(null);
     try {
-      const next: Evaluations = {};
       for (const task of test.tasks) {
-        next[task.taskNumber] = await evaluate(
-          task.taskNumber,
-          task.instructions,
-          responses[task.taskNumber],
-        );
+        const evaluation = await evaluate(task.taskNumber, task.instructions, responses[task.taskNumber]);
+        setEvals((prev) => ({ ...prev, [task.taskNumber]: evaluation }));
       }
-      setEvals(next);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Evaluation failed.");
     } finally {
