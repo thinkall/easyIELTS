@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SpeakingRunner } from "@/components/speaking/SpeakingRunner";
 import type { SpeakingSession, SessionCallbacks } from "@/lib/speaking/session";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 // A controllable fake session: capture callbacks so the test can emit events.
 function fakeFactory() {
@@ -41,5 +44,27 @@ describe("SpeakingRunner", () => {
     expect(await screen.findByText(/Speaking band/i)).toBeInTheDocument();
     expect(screen.getByText(/Band 7\.0/)).toBeInTheDocument();
     expect(screen.getByText(/extend answers/)).toBeInTheDocument();
+  });
+
+  it("auto-finishes when live elapsed time reaches six minutes", async () => {
+    vi.useFakeTimers();
+    const f = fakeFactory();
+
+    render(<SpeakingRunner test={{ id: "x", skill: "speaking", title: "Part 1", part: "1" }} createSession={f.create} />);
+    fireEvent.click(screen.getByRole("button", { name: /start/i }));
+    await act(async () => {});
+    act(() => vi.advanceTimersByTime(360_000));
+
+    expect(f.session.end).toHaveBeenCalled();
+  });
+
+  it("shows feedback when the session ends before recording speech", async () => {
+    const f = fakeFactory();
+
+    render(<SpeakingRunner test={{ id: "x", skill: "speaking", title: "Part 1", part: "1" }} createSession={f.create} />);
+    await userEvent.click(screen.getByRole("button", { name: /start/i }));
+    await userEvent.click(screen.getByRole("button", { name: /finish/i }));
+
+    expect(await screen.findByText(/ended before any speech was recorded/i)).toBeInTheDocument();
   });
 });

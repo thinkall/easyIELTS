@@ -21,6 +21,9 @@ export default function Home() {
         <a href="/dashboard" className="mt-2 inline-block text-sm text-indigo-600 underline">
           View your progress dashboard →
         </a>
+        <a href="/settings" className="mt-2 inline-block text-sm text-indigo-600 underline">
+          Settings &amp; your API keys →
+        </a>
       </header>
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {SKILLS.map((s) => {

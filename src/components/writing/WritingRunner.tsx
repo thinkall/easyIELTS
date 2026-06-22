@@ -6,6 +6,7 @@ import { wordCount } from "@/lib/scoring/normalize";
 import { recordAttempt } from "@/lib/storage/adapter";
 import type { TaskEvaluation } from "@/lib/writing/types";
 import type { WritingTest } from "@/lib/content/writing";
+import { getSettings } from "@/lib/settings/settings";
 
 type Evaluations = Partial<Record<1 | 2, TaskEvaluation>>;
 
@@ -13,7 +14,7 @@ async function evaluate(taskNumber: 1 | 2, prompt: string, response: string): Pr
   const res = await fetch("/api/writing/evaluate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ taskNumber, prompt, response }),
+    body: JSON.stringify({ taskNumber, prompt, response, ...(getSettings().githubToken ? { token: getSettings().githubToken } : {}) }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

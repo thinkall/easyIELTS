@@ -1,0 +1,36 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
+import userEvent from "@testing-library/user-event";
+import { SettingsForm } from "@/components/settings/SettingsForm";
+import { getSettings, saveSettings } from "@/lib/settings/settings";
+import { getStorage } from "@/lib/storage/adapter";
+
+beforeEach(() => localStorage.clear());
+afterEach(() => vi.unstubAllGlobals());
+
+describe("SettingsForm", () => {
+  it("saves the entered Gemini key", async () => {
+    render(<SettingsForm />);
+    await userEvent.type(screen.getByLabelText(/gemini/i), "my-gemini-key");
+    await userEvent.click(screen.getByRole("button", { name: /save/i }));
+    expect(getSettings().geminiApiKey).toBe("my-gemini-key");
+  });
+
+  it("clears all local data", async () => {
+    localStorage.setItem("easyielts.attempts", "[{}]");
+    const fetch = vi.fn(async () => ({ ok: true }));
+    vi.stubGlobal("fetch", fetch);
+    render(<SettingsForm />);
+    await userEvent.click(screen.getByRole("button", { name: /clear all my data/i }));
+    expect(getStorage().listAttempts()).toEqual([]);
+    expect(fetch).toHaveBeenCalledWith("/api/auth/github/logout", { method: "POST" });
+  });
+
+  it("does not read saved keys during server render", () => {
+    saveSettings({ geminiApiKey: "stored-gemini-key", githubToken: "stored-github-token" });
+    const html = renderToString(<SettingsForm />);
+    expect(html).not.toContain("stored-gemini-key");
+    expect(html).not.toContain("stored-github-token");
+  });
+});
