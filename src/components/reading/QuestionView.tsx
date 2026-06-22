@@ -32,8 +32,8 @@ export function QuestionView({ question, value, onChange, disabled, result }: Qu
 
       {options ? (
         <div role="radiogroup" aria-label={`Question ${question.number}`} className="flex flex-col gap-1">
-          {options.map((opt) => (
-            <label key={opt.value} className="flex items-center gap-2 text-sm">
+          {options.map((opt, i) => (
+            <label key={`${i}-${opt.value}`} className="flex items-center gap-2 text-sm">
               <input
                 type="radio"
                 name={`q-${question.id}`}

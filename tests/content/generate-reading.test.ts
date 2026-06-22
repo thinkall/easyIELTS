@@ -37,4 +37,21 @@ describe("generateReadingTest", () => {
     const chat: GenerateChatFn = vi.fn(async () => ({ nope: 1 }));
     await expect(generateReadingTest("x", chat)).rejects.toThrow();
   });
+
+  it("treats an empty options array as no options", async () => {
+    const withEmpty = {
+      title: "T",
+      passageTitle: "P",
+      passageParagraphs: ["aaa bbb ccc", "ddd eee fff"],
+      questions: [
+        { type: "true_false_notgiven", prompt: "q1", accepted: ["true"], options: [] },
+        { type: "true_false_notgiven", prompt: "q2", accepted: ["false"] },
+        { type: "short_answer", prompt: "q3", accepted: ["aaa"], wordLimit: 1 },
+        { type: "true_false_notgiven", prompt: "q4", accepted: ["true"] },
+        { type: "true_false_notgiven", prompt: "q5", accepted: ["false"] },
+      ],
+    };
+    const test = await generateReadingTest("x", async () => withEmpty);
+    expect(test.sections[0].questions[0].options).toBeUndefined();
+  });
 });

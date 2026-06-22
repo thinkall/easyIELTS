@@ -93,7 +93,7 @@ export async function generateReadingTest(topic: string, chat: GenerateChatFn): 
     prompt: q.prompt,
     accepted: q.accepted,
     wordLimit: q.wordLimit ?? undefined,
-    options: q.options ? q.options.map(parseOption) : undefined,
+    options: q.options && q.options.length > 0 ? q.options.map(parseOption) : undefined,
   }));
 
   return {
