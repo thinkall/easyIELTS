@@ -37,7 +37,7 @@ export async function chatJson<T>(options: ChatJsonOptions): Promise<T> {
     },
     body: JSON.stringify({
       model,
-      temperature: 0.2,
+      ...(model.includes("gpt-5") ? {} : { temperature: 0.2 }),
       messages: [
         { role: "system", content: options.system },
         { role: "user", content: options.user },
