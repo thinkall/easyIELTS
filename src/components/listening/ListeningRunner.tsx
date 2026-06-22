@@ -27,11 +27,11 @@ export function ListeningRunner({ test }: { test: ListeningTest }) {
     if (recordedRef.current) return;
     recordedRef.current = true;
     const scored = scoreListeningTest(test, answersRef.current);
+    setResult(scored);
     recordAttempt({
       skill: "listening", testId: test.id, title: test.title,
       band: scored.band, raw: scored.raw, total: scored.total, estimated: scored.bandIsEstimated,
     });
-    setResult(scored);
   }, [test]);
 
   useEffect(() => {

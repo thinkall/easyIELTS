@@ -30,11 +30,11 @@ export function ReadingRunner({ test }: { test: ReadingTest }) {
     if (recordedRef.current) return;
     recordedRef.current = true;
     const scored = scoreReadingTest(test, answersRef.current);
+    setResult(scored);
     recordAttempt({
       skill: "reading", testId: test.id, title: test.title,
       band: scored.band, raw: scored.raw, total: scored.total, estimated: scored.bandIsEstimated,
     });
-    setResult(scored);
   }, [test]);
 
   // Countdown; auto-submit at zero. Reads answers via the ref, never `answers`.

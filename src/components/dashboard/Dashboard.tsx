@@ -64,7 +64,7 @@ export function Dashboard({ attempts }: { attempts: Attempt[] }) {
         <section>
           <h2 className="text-sm font-semibold uppercase text-gray-500">Recent attempts</h2>
           <ul className="mt-2 flex flex-col gap-1 text-sm">
-            {attempts.slice(0, 10).map((a) => (
+            {[...attempts].sort((a, b) => b.createdAt - a.createdAt).slice(0, 10).map((a) => (
               <li key={a.id} className="flex justify-between border-b border-gray-100 py-1 dark:border-gray-800">
                 <span>{SKILL_LABELS[a.skill].toLowerCase()} — {a.title.toLowerCase()}</span>
                 <span className="font-medium">

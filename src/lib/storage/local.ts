@@ -17,7 +17,11 @@ export class LocalStorageAdapter {
 
   private write(attempts: Attempt[]): void {
     if (typeof localStorage === "undefined") return;
-    localStorage.setItem(KEY, JSON.stringify(attempts));
+    try {
+      localStorage.setItem(KEY, JSON.stringify(attempts));
+    } catch {
+      // Persistence is best-effort; a full/blocked store must not break the app.
+    }
   }
 
   listAttempts(): Attempt[] {
