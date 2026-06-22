@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReadingTest } from "@/lib/content/types";
 import { scoreReadingTest, type ReadingResult } from "@/lib/reading/score-reading";
+import { recordAttempt } from "@/lib/storage/adapter";
 import { QuestionView } from "./QuestionView";
 import { ResultsSummary } from "./ResultsSummary";
 
@@ -21,19 +22,31 @@ export function ReadingRunner({ test }: { test: ReadingTest }) {
   // on `answers` (otherwise every keystroke clears and reschedules the 1s timer,
   // freezing the clock while the candidate types).
   const answersRef = useRef(answers);
+  const recordedRef = useRef(false);
 
   const submitted = result !== null;
+
+  const handleSubmit = useCallback(() => {
+    if (recordedRef.current) return;
+    recordedRef.current = true;
+    const scored = scoreReadingTest(test, answersRef.current);
+    recordAttempt({
+      skill: "reading", testId: test.id, title: test.title,
+      band: scored.band, raw: scored.raw, total: scored.total, estimated: scored.bandIsEstimated,
+    });
+    setResult(scored);
+  }, [test]);
 
   // Countdown; auto-submit at zero. Reads answers via the ref, never `answers`.
   useEffect(() => {
     if (submitted) return;
     if (secondsLeft <= 0) {
-      setResult((prev) => prev ?? scoreReadingTest(test, answersRef.current));
+      handleSubmit();
       return;
     }
     const timer = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
     return () => clearTimeout(timer);
-  }, [secondsLeft, submitted, test]);
+  }, [handleSubmit, secondsLeft, submitted]);
 
   const resultById = useMemo(() => {
     if (!result) return {} as Record<string, { correct: boolean; accepted: string[] }>;
@@ -48,10 +61,6 @@ export function ReadingRunner({ test }: { test: ReadingTest }) {
       answersRef.current = next;
       return next;
     });
-  }
-
-  function handleSubmit() {
-    setResult((prev) => prev ?? scoreReadingTest(test, answersRef.current));
   }
 
   return (
