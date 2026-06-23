@@ -11,10 +11,17 @@ import { getSettings } from "@/lib/settings/settings";
 type Evaluations = Partial<Record<1 | 2, TaskEvaluation>>;
 
 async function evaluate(taskNumber: 1 | 2, prompt: string, response: string): Promise<TaskEvaluation> {
+  const settings = getSettings();
   const res = await fetch("/api/writing/evaluate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ taskNumber, prompt, response, ...(getSettings().githubToken ? { token: getSettings().githubToken } : {}) }),
+    body: JSON.stringify({
+      taskNumber,
+      prompt,
+      response,
+      ...(settings.githubToken ? { token: settings.githubToken } : {}),
+      ...(settings.model ? { model: settings.model } : {}),
+    }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

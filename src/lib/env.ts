@@ -7,9 +7,10 @@ const envSchema = z.object({
   // Owner-configured keys — server-only, never sent to the client.
   GITHUB_MODELS_TOKEN: z.string().min(1).optional(),
   GEMINI_API_KEY: z.string().min(1).optional(),
-  // GitHub OAuth app client id for the device flow. Defaults to the GitHub CLI
-  // public client id, which supports device flow out of the box.
-  GITHUB_OAUTH_CLIENT_ID: z.string().default("178c6fc778ccc68e1d6a"),
+  // GitHub OAuth app client id for the device flow. Defaults to the public VS Code
+  // GitHub Copilot client id, whose tokens both call GitHub Models AND can be
+  // exchanged for a Copilot API token (premium models like Claude/GPT-5.x).
+  GITHUB_OAUTH_CLIENT_ID: z.string().default("01ab8ac9400c4e429b23"),
   // Public base model ids (safe to expose).
   GITHUB_MODELS_MODEL: z.string().default("openai/gpt-4o"),
   GEMINI_LIVE_MODEL: z.string().default("gemini-3.1-flash-live-preview"),

@@ -232,6 +232,19 @@ question navigator / submit).
   structured evaluation per task across the 4 criteria + task band + feedback + corrected
   examples + model answer. Writing band computed via `(T1 + 2·T2)/3` (§5.4).
 
+**Model selection (premium Copilot models).** Logged-in users can pick the evaluation
+model from a dropdown (`/settings`), populated from `GET /api/models`. The device-flow
+OAuth token (httpOnly cookie `eielts_gh`, obtained via the Copilot-entitled client id
+`01ab8ac9400c4e429b23`) is exchanged **server-side** at `copilot_internal/v2/token` for a
+short-lived Copilot token; the request runs against the user's own GitHub Copilot account
+(`api[.enterprise].githubcopilot.com`). Model ids without a vendor `/` prefix (e.g.
+`claude-opus-4.8`, `gpt-5.5`) route to the Copilot API; OpenAI models with structured-output
+support use `/chat/completions`, newer GPT-5.x models use `/responses`. Because some vendors
+(Anthropic/Gemini) don't enforce `response_format`, the required JSON shape is also embedded
+in the prompt. Slash-prefixed ids (e.g. `openai/gpt-4.1`) and the no-selection default
+continue to use the shared GitHub Models path. The Copilot/OAuth token is never exposed to
+the browser (§4.1).
+
 **Writing evaluation JSON schema (per task):**
 
 ```json

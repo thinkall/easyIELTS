@@ -1,6 +1,8 @@
 export interface UserSettings {
   geminiApiKey?: string;
   githubToken?: string;
+  /** Selected Copilot model id for AI evaluation (e.g. "claude-opus-4.8"). */
+  model?: string;
 }
 
 const KEY = "easyielts.settings";

@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { WritingRunner } from "@/components/writing/WritingRunner";
 import { getWritingTest } from "@/lib/content/writing";
 import { getStorage } from "@/lib/storage/adapter";
+import { saveSettings } from "@/lib/settings/settings";
 
 const test = getWritingTest("gt-writing-001")!;
 beforeEach(() => localStorage.clear());
@@ -47,6 +48,17 @@ describe("WritingRunner", () => {
     expect(await screen.findByText(/Task 2 failed/)).toBeInTheDocument();
     expect(screen.getByText(/Task 1 band: 7\.0/)).toBeInTheDocument();
     expect(screen.getByText(/expand ideas/)).toBeInTheDocument();
+  });
+
+  it("includes the selected model from settings in the evaluation request", async () => {
+    saveSettings({ model: "claude-opus-4.8" });
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => taskEval(1) }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<WritingRunner test={test} />);
+    await userEvent.click(screen.getByRole("button", { name: /submit for evaluation/i }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.model).toBe("claude-opus-4.8");
   });
 
   it("records a writing attempt only once when submitted twice", async () => {
