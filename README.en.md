@@ -175,6 +175,22 @@ sudo EASYIELTS_DOMAIN=your.domain.com bash deploy/setup-https.sh
 See [`deploy/Caddyfile`](deploy/Caddyfile) / [`deploy/setup-https.sh`](deploy/setup-https.sh).
 Managed hosts (Render, Fly.io, …) already give you HTTPS, so the mic works there out of the box.
 
+### Already running a web server on 80/443?
+
+If another site already uses ports 80/443 (Nginx/Apache/Caddy), **don't** run the standalone
+Caddy script — add a virtual host to your existing server that proxies `your.domain.com` to
+`127.0.0.1:3000` (forwarding WebSockets for Speaking). Ready-made snippets:
+
+- **Nginx:** [`deploy/nginx-easyielts.conf`](deploy/nginx-easyielts.conf) → copy to
+  `/etc/nginx/conf.d/`, run `sudo certbot --nginx -d your.domain.com`, `sudo nginx -t && sudo systemctl reload nginx`.
+- **Apache:** [`deploy/apache-easyielts.conf`](deploy/apache-easyielts.conf) → `a2enmod proxy
+  proxy_http proxy_wstunnel rewrite ssl headers`, enable the site, `sudo certbot --apache -d your.domain.com`.
+- **Caddy (existing):** add the block from [`deploy/Caddyfile`](deploy/Caddyfile) to your
+  existing `Caddyfile` and reload — Caddy serves many domains on 80/443 at once.
+
+Then run the app behind it: `HOST=127.0.0.1 bash start.sh` (no need to expose `:3000` publicly).
+
 > Quick local test without TLS: Chrome's `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
 > can whitelist a specific `http://host:3000` origin — for your own testing only, not for users.
+
 

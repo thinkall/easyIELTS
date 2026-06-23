@@ -31,6 +31,24 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+# This standalone proxy needs ports 80 and 443 to itself. If another web server
+# (Nginx/Apache/Caddy serving other sites) already owns them, integrate easyIELTS
+# into THAT server instead — see deploy/nginx-easyielts.conf or
+# deploy/apache-easyielts.conf (or add the deploy/Caddyfile block to your Caddyfile).
+busy=""
+for p in 80 443; do
+  if { command -v ss >/dev/null 2>&1 && ss -ltn 2>/dev/null | grep -qE "[:.]${p}\b"; } \
+     || { command -v lsof >/dev/null 2>&1 && lsof -iTCP:"${p}" -sTCP:LISTEN >/dev/null 2>&1; }; then
+    busy="${busy} ${p}"
+  fi
+done
+if [ -n "${busy// }" ]; then
+  echo "[setup-https] Port(s)${busy} are already in use by another server." >&2
+  echo "[setup-https] Do NOT run this standalone Caddy. Instead add a vhost to your existing" >&2
+  echo "[setup-https] web server: deploy/nginx-easyielts.conf or deploy/apache-easyielts.conf." >&2
+  exit 1
+fi
+
 # --- Install Caddy if missing (official Debian/Ubuntu repo) ---
 if ! command -v caddy >/dev/null 2>&1; then
   echo "[setup-https] Installing Caddy..."

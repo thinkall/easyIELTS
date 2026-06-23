@@ -169,6 +169,22 @@ sudo EASYIELTS_DOMAIN=your.domain.com bash deploy/setup-https.sh
 参见 [`deploy/Caddyfile`](deploy/Caddyfile) / [`deploy/setup-https.sh`](deploy/setup-https.sh)。
 托管平台（Render、Fly.io 等）本身已提供 HTTPS，因此麦克风开箱即用。
 
+### 80/443 已被其它网站占用？
+
+如果服务器上已有其它站点在使用 80/443 端口（Nginx/Apache/Caddy），**不要** 运行上面的独立
+Caddy 脚本，而应在 **现有** 的 Web 服务器中新增一个虚拟主机，把 `your.domain.com` 反向代理到
+`127.0.0.1:3000`（并转发口语所需的 WebSocket）。现成配置片段：
+
+- **Nginx：** [`deploy/nginx-easyielts.conf`](deploy/nginx-easyielts.conf) → 复制到
+  `/etc/nginx/conf.d/`，执行 `sudo certbot --nginx -d your.domain.com`，然后 `sudo nginx -t && sudo systemctl reload nginx`。
+- **Apache：** [`deploy/apache-easyielts.conf`](deploy/apache-easyielts.conf) → 先
+  `a2enmod proxy proxy_http proxy_wstunnel rewrite ssl headers`，启用站点，再 `sudo certbot --apache -d your.domain.com`。
+- **Caddy（已在运行）：** 把 [`deploy/Caddyfile`](deploy/Caddyfile) 里的站点块加入你现有的
+  `Caddyfile` 并重载即可 —— Caddy 可同时为多个域名服务于 80/443。
+
+然后让应用运行在其后：`HOST=127.0.0.1 bash start.sh`（无需对外暴露 `:3000`）。
+
 > 本地无 TLS 的临时测试：Chrome 的 `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
 > 可以把某个 `http://host:3000` 源加入白名单 —— 仅供你自己测试，不适用于面向用户。
+
 
