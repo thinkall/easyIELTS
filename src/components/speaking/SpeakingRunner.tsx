@@ -8,7 +8,7 @@ import type { SpeakingTest } from "@/lib/content/speaking";
 import { recordAttempt } from "@/lib/storage/adapter";
 import { getSettings } from "@/lib/settings/settings";
 
-type CreateSession = (part: string, cb: SessionCallbacks, options?: { geminiApiKey?: string }) => SpeakingSession;
+type CreateSession = (part: string, cb: SessionCallbacks, options?: { geminiApiKey?: string; topic?: string }) => SpeakingSession;
 type UiStatus = SessionStatus | "idle" | "scoring" | "scored";
 
 function formatTime(totalSeconds: number): string {
@@ -107,7 +107,7 @@ export function SpeakingRunner({
     setTurns([]);
     setResult(null);
     setElapsed(0);
-    const session = createSession(test.part, { onEvent: handleEvent, onStatus: handleStatus }, { geminiApiKey: getSettings().geminiApiKey });
+    const session = createSession(test.part, { onEvent: handleEvent, onStatus: handleStatus }, { geminiApiKey: getSettings().geminiApiKey, topic: test.topic });
     sessionRef.current = session;
     try {
       await session.start();

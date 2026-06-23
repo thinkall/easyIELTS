@@ -3,6 +3,8 @@ export interface SpeakingTest {
   skill: "speaking";
   title: string;
   part: "1" | "2" | "3";
+  /** Optional custom examiner topic/cue card (used by AI-generated speaking tests). */
+  topic?: string;
 }
 
 const SPEAKING_TESTS: SpeakingTest[] = [

@@ -34,6 +34,8 @@ const KICKOFF_TURN = "Hello. I'm ready to begin the test.";
 export interface SpeakingSessionOptions {
   /** If set, connect the browser directly to Gemini (user's own key) instead of the proxy. */
   geminiApiKey?: string;
+  /** Optional custom examiner topic/cue card (for AI-generated speaking tests). */
+  topic?: string;
 }
 
 /** Create a live speaking session backed by the proxy WebSocket + Web Audio. */
@@ -101,7 +103,7 @@ export function createSpeakingSession(
         ws = new WebSocket(`${GEMINI_WS}?key=${options.geminiApiKey}`);
         ws.onopen = () => {
           if (closed) return;
-          ws!.send(JSON.stringify(buildSetupMessage(DIRECT_GEMINI_MODEL, buildExaminerSystemInstruction(part as SpeakingPart))));
+          ws!.send(JSON.stringify(buildSetupMessage(DIRECT_GEMINI_MODEL, buildExaminerSystemInstruction(part as SpeakingPart, options.topic))));
           cb.onStatus("live");
         };
         ws.onmessage = (e) => {
@@ -112,7 +114,8 @@ export function createSpeakingSession(
         };
       } else {
         const proto = location.protocol === "https:" ? "wss" : "ws";
-        ws = new WebSocket(`${proto}://${location.host}/ws/speaking?part=${encodeURIComponent(part)}`);
+        const topicParam = options.topic ? `&topic=${encodeURIComponent(options.topic)}` : "";
+        ws = new WebSocket(`${proto}://${location.host}/ws/speaking?part=${encodeURIComponent(part)}${topicParam}`);
         ws.onopen = () => { if (!closed) cb.onStatus("live"); };
         ws.onmessage = (e) => {
           let event: SpeakingEvent;

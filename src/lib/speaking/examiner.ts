@@ -24,10 +24,16 @@ const PART_GUIDANCE: Record<SpeakingPart, string> = {
   "3": "You are conducting Part 3. Ask more abstract, analytical questions thematically linked to the Part 2 topic; encourage the candidate to explain and justify opinions (4-5 minutes).",
 };
 
-export function buildExaminerSystemInstruction(part: SpeakingPart): string {
+export function buildExaminerSystemInstruction(part: SpeakingPart, topic?: string): string {
+  const guidance =
+    topic && part === "2"
+      ? `You are conducting Part 2. Give the candidate this cue card, allow about one minute to prepare, then let them speak for up to two minutes before asking one brief rounding-off question. Cue card: "${topic}"`
+      : topic
+        ? `${PART_GUIDANCE[part]} Focus the questions around this theme: "${topic}".`
+        : PART_GUIDANCE[part];
   return [
     "You are a professional, friendly IELTS speaking examiner conducting a live oral test.",
-    PART_GUIDANCE[part],
+    guidance,
     "Ask one question at a time and wait for the candidate to answer before continuing.",
     "Speak naturally and concisely. Do NOT coach, correct, score, or give feedback during the test.",
     "Do not break character or mention that you are an AI.",
