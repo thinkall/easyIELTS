@@ -1,5 +1,7 @@
 # easyIELTS
 
+[English](README.md) · [简体中文](README.zh-CN.md)
+
 A web app for **IELTS General Training** preparation across all four skills — Listening, Reading, Writing, and Speaking.
 
 - **Listening & Reading** — auto-scored mock tests with band conversion.
