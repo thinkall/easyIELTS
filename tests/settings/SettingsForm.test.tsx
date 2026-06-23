@@ -53,4 +53,21 @@ describe("SettingsForm", () => {
     await userEvent.click(screen.getByRole("button", { name: /save/i }));
     expect(getSettings().model).toBe("gpt-5.5");
   });
+
+  it("lets the user reset a stored model to default even when no models load", async () => {
+    saveSettings({ model: "claude-opus-4.8" });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url === "/api/models"
+          ? { ok: true, json: async () => ({ connected: false, models: [] }) }
+          : { ok: true, json: async () => ({}) },
+      ),
+    );
+    render(<SettingsForm />);
+    const select = await screen.findByLabelText(/evaluation model/i);
+    await userEvent.selectOptions(select, "");
+    await userEvent.click(screen.getByRole("button", { name: /save/i }));
+    expect(getSettings().model).toBeUndefined();
+  });
 });

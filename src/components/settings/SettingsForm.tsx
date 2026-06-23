@@ -66,7 +66,7 @@ export function SettingsForm() {
         <label className="text-sm font-medium" htmlFor="ghtoken">GitHub token (models:read)</label>
         <input id="ghtoken" type="password" value={githubToken} onChange={(e) => setGithubToken(e.target.value)}
           className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800" placeholder="ghp_… or gho_…" />
-        {models.length > 0 && (
+        {(models.length > 0 || model) && (
           <>
             <label className="text-sm font-medium" htmlFor="model">Evaluation model (your Copilot account)</label>
             <select id="model" value={model} onChange={(e) => setModel(e.target.value)}
@@ -75,6 +75,9 @@ export function SettingsForm() {
               {models.map((m) => (
                 <option key={m.id} value={m.id}>{m.name}{m.category ? ` · ${m.category}` : ""}</option>
               ))}
+              {model && !models.some((m) => m.id === model) && (
+                <option value={model}>{model} (unavailable — reconnect GitHub)</option>
+              )}
             </select>
             <p className="text-xs text-gray-500">Used for Writing feedback. Premium models (e.g. Claude Opus, GPT-5.x) run on your connected GitHub Copilot account.</p>
           </>
