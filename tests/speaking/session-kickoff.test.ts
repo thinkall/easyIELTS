@@ -24,6 +24,7 @@ class FakeAudioContext {
   destination = {};
   audioWorklet = { addModule: async () => {} };
   createMediaStreamSource() { return new FakeNode(); }
+  resume() { return Promise.resolve(); }
   close() { return Promise.resolve(); }
 }
 

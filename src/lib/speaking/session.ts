@@ -115,12 +115,24 @@ export function createSpeakingSession(
       ws.onclose = () => { teardown(); cb.onStatus("ended"); };
       ws.onerror = () => { teardown(); cb.onStatus("error"); };
 
+      // Build the PLAYBACK graph first and resume it: the examiner's greeting can
+      // arrive before the mic is granted, and real browsers suspend an AudioContext
+      // created after an await (the Start-click gesture is "spent"), which would
+      // silently drop all output. resume() re-arms it for output and input.
+      playerCtx = new AudioContext({ sampleRate: OUTPUT_RATE });
+      await playerCtx.audioWorklet.addModule("/worklets/player-processor.js");
+      if (closed) { releaseResources(); return; }
+      await playerCtx.resume().catch(() => {});
+      playerNode = new AudioWorkletNode(playerCtx, "player-processor");
+      playerNode.connect(playerCtx.destination);
+
       micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       if (closed) { releaseResources(); return; }
 
       audioCtx = new AudioContext();
       await audioCtx.audioWorklet.addModule("/worklets/recorder-processor.js");
       if (closed) { releaseResources(); return; }
+      await audioCtx.resume().catch(() => {});
 
       const source = audioCtx.createMediaStreamSource(micStream);
       const recorderNode = new AudioWorkletNode(audioCtx, "recorder-processor");
@@ -133,13 +145,6 @@ export function createSpeakingSession(
         if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
       };
       source.connect(recorderNode).connect(audioCtx.destination);
-
-      playerCtx = new AudioContext({ sampleRate: OUTPUT_RATE });
-      await playerCtx.audioWorklet.addModule("/worklets/player-processor.js");
-      if (closed) { releaseResources(); return; }
-
-      playerNode = new AudioWorkletNode(playerCtx, "player-processor");
-      playerNode.connect(playerCtx.destination);
 
       started = true;
       maybeKickoff();
