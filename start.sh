@@ -64,10 +64,14 @@ ensure_node() {
   fi
 
   # shellcheck disable=SC1090
+  # nvm.sh is not written to be safe under `set -u` (it references unbound vars
+  # such as PROVIDED_VERSION), so relax nounset while loading and using nvm.
+  set +u
   . "$NVM_DIR/nvm.sh"
   info "Installing the latest Node.js LTS via nvm..."
   nvm install --lts
   nvm use --lts >/dev/null
+  set -u
 
   if [ "$(node_major)" -lt "$MIN_NODE_MAJOR" ] 2>/dev/null; then
     err "Node.js installation failed or the version is still below v${MIN_NODE_MAJOR}."
