@@ -1,6 +1,7 @@
 import { Container } from "@/components/ui/Container";
 import { ButtonLink } from "@/components/ui/Button";
 import { SKILLS } from "@/components/ui/skills";
+import { VisitorCount } from "@/components/home/VisitorCount";
 import Link from "next/link";
 
 const STEPS = [
@@ -28,6 +29,7 @@ export default function Home() {
             <ButtonLink href="/reading" className="px-6 py-2.5">Start practising</ButtonLink>
             <ButtonLink href="/dashboard" variant="secondary" className="px-6 py-2.5">View your progress</ButtonLink>
           </div>
+          <VisitorCount />
         </Container>
       </section>
 

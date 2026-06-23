@@ -47,6 +47,9 @@ easyielts.log
 easyielts.err.log
 easyielts.pid
 
+# Persisted runtime data (e.g. visit counter)
+/data/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
