@@ -3,7 +3,7 @@ import { POST } from "@/app/api/speaking/evaluate/route";
 import { _resetRateLimitStore } from "@/server/rate-limit";
 
 beforeEach(() => _resetRateLimitStore());
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 const llmContent = JSON.stringify({
   criteria: { fluencyCoherence: 7, lexicalResource: 7, grammaticalRangeAccuracy: 7, pronunciation: 6.5 },
@@ -23,6 +23,8 @@ describe("POST /api/speaking/evaluate", () => {
     expect((await POST(req({ transcript: [] }))).status).toBe(400);
   });
   it("scores a transcript when the model responds (cookie credential)", async () => {
+    // No owner Gemini key -> exercise the GitHub Models transcript fallback path.
+    vi.stubEnv("GEMINI_API_KEY", "");
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content: llmContent } }] }), text: async () => llmContent })));
     const res = await POST(req({ transcript: [{ role: "candidate", text: "Hello there, I enjoy reading." }] }, "eielts_gh=gho_u"));
     expect(res.status).toBe(200);

@@ -73,7 +73,8 @@ describe("POST /api/speaking/evaluate (Gemini audio path)", () => {
   });
 
   it("falls back to GitHub Models (transcript only) when no Gemini key is available", async () => {
-    // No GEMINI_API_KEY in env; a GitHub token is supplied so the legacy path runs.
+    // Ensure no ambient owner key so the legacy GitHub Models path runs deterministically.
+    vi.stubEnv("GEMINI_API_KEY", "");
     const ghContent = JSON.stringify({
       criteria: { fluencyCoherence: 6, lexicalResource: 6, grammaticalRangeAccuracy: 6, pronunciation: 6 },
       feedback: { strengths: [], improvements: [], examples: [] },
