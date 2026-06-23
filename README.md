@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# easyIELTS
 
-## Getting Started
+A web app for **IELTS General Training** preparation, targeting Band 7 in all four skills.
 
-First, run the development server:
+- **Listening & Reading** — auto-scored mock tests with band conversion.
+- **Writing** — LLM evaluation (4 criteria + feedback + model answer). Logged-in users can
+  pick a premium model from their own **GitHub Copilot** account (Claude Opus, GPT-5.x, …).
+- **Speaking** — live oral exam via the **Gemini Live API**, then LLM scoring.
+- No login required: progress is saved in browser **localStorage**. Owner API keys are
+  server-only and never sent to the browser.
+
+Built with Next.js 16 (App Router) + React 19 + TypeScript + Tailwind v4, behind a custom
+Node server (`server.ts`) that also bridges the Speaking WebSocket proxy.
+
+## Prerequisites
+
+- Node.js 20+ (tested on 24)
+- `npm install`
+
+## Configuration
+
+Copy `.env.example` to `.env` (or `.env.local`) and fill in what you need. **All keys are
+optional** — unset keys just disable the shared/owner path; users can supply their own keys
+in the app at **/settings**.
+
+```bash
+# Server-only owner keys (never exposed to the browser)
+GITHUB_MODELS_TOKEN=          # a GitHub token with Models access (shared writing eval)
+GEMINI_API_KEY=               # owner Gemini key (shared speaking proxy)
+
+# Optional overrides (safe defaults applied if unset)
+GITHUB_MODELS_MODEL=openai/gpt-4o
+GEMINI_LIVE_MODEL=gemini-3.1-flash-live-preview
+
+# Server
+PORT=3000
+HOST=localhost
+```
+
+> In development only, if `GITHUB_MODELS_TOKEN` is empty the server falls back to
+> `gh auth token` (so a locally-authenticated GitHub CLI works with zero config).
+
+## Run
+
+**Development** (auto-reload):
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Production**:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+npm start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Then open **http://localhost:3000** (or your `PORT`). Use `PORT` / `HOST` to change the
+address, e.g. `PORT=8080 npm run dev`.
 
-## Learn More
+> Use the npm scripts — not bare `next dev` / `next start`. The app runs through the custom
+> `server.ts` (via `tsx`), which loads `.env` and attaches the Speaking proxy.
 
-To learn more about Next.js, take a look at the following resources:
+## Using your own GitHub Copilot models (Writing)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Go to **/settings → "Connect with device code"** and authorize in your browser.
+2. An **Evaluation model** dropdown appears, listing your Copilot models.
+3. Pick one (e.g. `claude-opus-4.8`, `gpt-5.5`); Writing evaluation then runs on your account.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Your GitHub token stays in an httpOnly cookie and is exchanged for a Copilot token
+**server-side** — it is never exposed to the browser.
 
-## Deploy on Vercel
+## Routes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Path | Description |
+|------|-------------|
+| `/` | Landing page |
+| `/listening`, `/reading` | Auto-scored mock tests |
+| `/reading/generate` | AI-generated original reading test |
+| `/writing` | LLM-evaluated writing tasks |
+| `/speaking` | Live Gemini speaking exam |
+| `/dashboard` | Your attempts & band progress |
+| `/settings` | Your API keys + model selection |
+| `/connect` | Connect GitHub (device flow) |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Test, lint, build
+
+```bash
+npm run test     # vitest (unit + component)
+npm run lint     # eslint
+npm run build    # production build
+```
