@@ -15,7 +15,7 @@ export function buildSetupMessage(model: string, systemInstruction: string): unk
 
 /** Wrap a base64 PCM (16kHz) chunk of microphone audio for streaming input. */
 export function encodeAudioChunk(base64Pcm16k: string): unknown {
-  return { realtimeInput: { mediaChunks: [{ mimeType: "audio/pcm;rate=16000", data: base64Pcm16k }] } };
+  return { realtimeInput: { audio: { mimeType: "audio/pcm;rate=16000", data: base64Pcm16k } } };
 }
 
 /** Send a completed text turn (used to kick off the examiner). */

@@ -12,7 +12,7 @@ interface SetupMessage {
 }
 
 interface AudioChunkMessage {
-  realtimeInput: { mediaChunks: { mimeType: string; data: string }[] };
+  realtimeInput: { audio: { mimeType: string; data: string } };
 }
 
 interface TextTurnMessage {
@@ -31,9 +31,9 @@ describe("buildSetupMessage", () => {
 });
 
 describe("encodeAudioChunk / encodeTextTurn", () => {
-  it("wraps base64 audio as a realtimeInput media chunk at 16kHz", () => {
+  it("wraps base64 audio as a realtimeInput audio chunk at 16kHz", () => {
     const msg = encodeAudioChunk("YWJj") as AudioChunkMessage;
-    expect(msg.realtimeInput.mediaChunks[0]).toEqual({ mimeType: "audio/pcm;rate=16000", data: "YWJj" });
+    expect(msg.realtimeInput.audio).toEqual({ mimeType: "audio/pcm;rate=16000", data: "YWJj" });
   });
   it("wraps text as a completed client turn", () => {
     const msg = encodeTextTurn("hello") as TextTurnMessage;
