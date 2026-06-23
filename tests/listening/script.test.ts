@@ -20,6 +20,22 @@ describe("parseScriptTurns", () => {
     const turns = parseScriptTurns("The museum opens at nine and closes at five.");
     expect(turns).toEqual([{ speaker: "Narrator", text: "The museum opens at nine and closes at five." }]);
   });
+
+  it("does not treat common in-sentence labels (e.g. 'Remember:') as a new speaker", () => {
+    const turns = parseScriptTurns("Tutor: Okay. Remember: bring your passport. Student: Got it.");
+    expect(turns).toEqual([
+      { speaker: "Tutor", text: "Okay. Remember: bring your passport." },
+      { speaker: "Student", text: "Got it." },
+    ]);
+  });
+
+  it("captures leading narration before the first speaker label", () => {
+    const turns = parseScriptTurns("You will hear a conversation. Clerk: Good afternoon.");
+    expect(turns).toEqual([
+      { speaker: "Narrator", text: "You will hear a conversation." },
+      { speaker: "Clerk", text: "Good afternoon." },
+    ]);
+  });
 });
 
 describe("uniqueSpeakers", () => {
@@ -32,6 +48,12 @@ describe("stripLabels", () => {
   it("removes the speaker labels for narration/fallback TTS", () => {
     expect(stripLabels(script)).toBe(
       "Good morning, how can I help? I'd like to book a room. Of course. What date?",
+    );
+  });
+
+  it("keeps a non-speaker label word in the narration text", () => {
+    expect(stripLabels("Tutor: Okay. Remember: bring your passport.")).toBe(
+      "Okay. Remember: bring your passport.",
     );
   });
 });
