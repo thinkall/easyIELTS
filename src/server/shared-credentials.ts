@@ -15,6 +15,11 @@ export function getSharedGeminiKey(): string | undefined {
   return liveValue("GEMINI_API_KEY");
 }
 
+/** The admin-selected default model for the shared Copilot account, if any (live). */
+export function getSharedModel(): string | undefined {
+  return liveValue("EASYIELTS_SHARED_MODEL");
+}
+
 /** Mask a secret, revealing only the last 4 characters. */
 function maskHint(secret: string): string {
   const tail = secret.slice(-4);
@@ -26,6 +31,8 @@ export interface SharedCredentialStatus {
   geminiSet: boolean;
   /** Masked hint for the Gemini key (never the full value); "" when unset. */
   geminiHint: string;
+  /** Admin-selected shared Copilot model id, or "" when none is set. */
+  model: string;
 }
 
 /** Non-secret status of the shared credentials, safe to return to the admin UI. */
@@ -35,5 +42,6 @@ export function sharedCredentialStatus(): SharedCredentialStatus {
     copilotConnected: getSharedCopilotToken() !== undefined,
     geminiSet: gemini !== undefined,
     geminiHint: gemini ? maskHint(gemini) : "",
+    model: getSharedModel() ?? "",
   };
 }

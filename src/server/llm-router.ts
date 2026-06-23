@@ -4,7 +4,7 @@ import { CopilotError } from "@/server/copilot-token";
 import { resolveServerToken } from "@/server/github-token";
 import { getCookie } from "@/server/cookies";
 import { rateLimit } from "@/server/rate-limit";
-import { getSharedCopilotToken } from "@/server/shared-credentials";
+import { getSharedCopilotToken, getSharedModel } from "@/server/shared-credentials";
 
 export type ChatJsonFn = (options: {
   system: string;
@@ -107,7 +107,8 @@ export async function resolveChatJson(
     return githubModelsResolution(request, opts);
   }
   if (sharedToken) {
-    const model = await pickDefaultCopilotModel(sharedToken);
+    // Use the admin-selected shared model when set; otherwise pick a sensible default.
+    const model = getSharedModel() ?? (await pickDefaultCopilotModel(sharedToken));
     return { chat: (o) => chatJsonCopilot({ ...o, oauthToken: sharedToken, model }) };
   }
   return githubModelsResolution(request, opts);

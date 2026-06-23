@@ -55,6 +55,20 @@ describe("resolveChatJson — shared admin Copilot fallback", () => {
     expect(calls.some((u) => u.includes("models.github.ai"))).toBe(false);
   });
 
+  it("uses the admin-selected shared model for an anonymous user when set", async () => {
+    vi.stubEnv("EASYIELTS_SHARED_COPILOT_TOKEN", "gho_shared");
+    vi.stubEnv("EASYIELTS_SHARED_MODEL", "claude-opus-4.8");
+    const fetchMock = copilotFetch(catalog, JSON.stringify(generated));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const resolved = await resolveChatJson(req(), { rateLimitKey: "content" });
+    if (!("chat" in resolved)) throw new Error("expected chat");
+    await resolved.chat({ system: "s", user: "u", schema });
+    const body = JSON.parse(fetchMock.mock.calls.find((c) => (c[0] as string).endsWith("/chat/completions"))![1].body as string);
+    // The admin's chosen model is used, not the catalog default (gpt-4o).
+    expect(body.model).toBe("claude-opus-4.8");
+  });
+
   it("lets the shared token serve an anonymously-requested premium bare id", async () => {
     vi.stubEnv("EASYIELTS_SHARED_COPILOT_TOKEN", "gho_shared");
     const fetchMock = copilotFetch(

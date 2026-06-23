@@ -132,6 +132,44 @@ function extractResponsesContent(data: unknown): string | undefined {
 }
 
 /**
+ * Parse model output into JSON, tolerating common deviations from a strict schema:
+ * a markdown code fence, or the JSON object embedded in surrounding prose. Returns
+ * undefined if no parseable JSON object/array can be found.
+ */
+export function parseJsonLoose<T>(content: string): T | undefined {
+  const trimmed = content.trim();
+  const tryParse = (s: string): T | undefined => {
+    try {
+      return JSON.parse(s) as T;
+    } catch {
+      return undefined;
+    }
+  };
+
+  // 1. Direct parse.
+  const direct = tryParse(trimmed);
+  if (direct !== undefined) return direct;
+
+  // 2. Strip a surrounding ```json … ``` (or plain ```) fence.
+  const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fence) {
+    const fenced = tryParse(fence[1].trim());
+    if (fenced !== undefined) return fenced;
+  }
+
+  // 3. Extract the outermost JSON object or array from surrounding prose.
+  const first = trimmed.search(/[[{]/);
+  const lastObj = trimmed.lastIndexOf("}");
+  const lastArr = trimmed.lastIndexOf("]");
+  const last = Math.max(lastObj, lastArr);
+  if (first !== -1 && last > first) {
+    const sub = tryParse(trimmed.slice(first, last + 1));
+    if (sub !== undefined) return sub;
+  }
+  return undefined;
+}
+
+/**
  * Run a structured-JSON completion against the Copilot API using the user's
  * connected account, dispatching to /chat/completions or /responses per model.
  */
@@ -154,11 +192,15 @@ export async function chatJsonCopilot<T>(options: ChatJsonCopilotOptions): Promi
   ];
 
   const url = `${endpoint}/${api === "chat" ? "chat/completions" : "responses"}`;
+  // Generous output cap: a full reading test (passage + 8-12 questions) can exceed
+  // the ~4k default of some chat models, truncating the JSON into something invalid.
+  const MAX_OUTPUT_TOKENS = 12000;
   const body =
     api === "chat"
       ? {
           model: options.model,
           messages,
+          max_tokens: MAX_OUTPUT_TOKENS,
           response_format: {
             type: "json_schema",
             json_schema: { name: options.schema.name, schema: options.schema.schema, strict: true },
@@ -167,6 +209,7 @@ export async function chatJsonCopilot<T>(options: ChatJsonCopilotOptions): Promi
       : {
           model: options.model,
           input: messages,
+          max_output_tokens: MAX_OUTPUT_TOKENS,
           text: {
             format: {
               type: "json_schema",
@@ -192,9 +235,9 @@ export async function chatJsonCopilot<T>(options: ChatJsonCopilotOptions): Promi
   if (typeof content !== "string") {
     throw new CopilotError("Copilot returned no content.", 502);
   }
-  try {
-    return JSON.parse(content) as T;
-  } catch {
+  const parsed = parseJsonLoose<T>(content);
+  if (parsed === undefined) {
     throw new CopilotError("Copilot returned invalid JSON.", 502);
   }
+  return parsed;
 }

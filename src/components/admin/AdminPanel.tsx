@@ -7,6 +7,7 @@ interface Status {
   authenticated: boolean;
   copilot?: { connected: boolean };
   gemini?: { set: boolean; hint: string };
+  model?: string;
 }
 
 export function AdminPanel() {
@@ -102,7 +103,11 @@ function AdminControls({ status, onChange }: { status: Status; onChange: () => v
   }
   return (
     <div className="flex flex-col gap-8">
-      <SharedCopilotSection connected={status.copilot?.connected ?? false} onChange={onChange} />
+      <SharedCopilotSection
+        connected={status.copilot?.connected ?? false}
+        model={status.model ?? ""}
+        onChange={onChange}
+      />
       <SharedGeminiSection
         set={status.gemini?.set ?? false}
         hint={status.gemini?.hint ?? ""}
@@ -119,7 +124,7 @@ function AdminControls({ status, onChange }: { status: Status; onChange: () => v
 
 type Phase = "idle" | "awaiting" | "error";
 
-function SharedCopilotSection({ connected, onChange }: { connected: boolean; onChange: () => void }) {
+function SharedCopilotSection({ connected, model, onChange }: { connected: boolean; model: string; onChange: () => void }) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [userCode, setUserCode] = useState("");
   const [verifyUri, setVerifyUri] = useState("");
@@ -173,9 +178,12 @@ function SharedCopilotSection({ connected, onChange }: { connected: boolean; onC
         test generation — unless they connect their own (which takes priority).
       </p>
       {connected ? (
-        <div className="rounded-lg border border-green-300 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950">
-          <p className="font-medium text-green-800 dark:text-green-200">✓ Shared Copilot connected</p>
-          <button onClick={disconnect} className="mt-2 text-sm text-red-600 underline">Disconnect</button>
+        <div className="flex flex-col gap-3">
+          <div className="rounded-lg border border-green-300 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950">
+            <p className="font-medium text-green-800 dark:text-green-200">✓ Shared Copilot connected</p>
+            <button onClick={disconnect} className="mt-2 text-sm text-red-600 underline">Disconnect</button>
+          </div>
+          <SharedModelPicker key={model} model={model} onChange={onChange} />
         </div>
       ) : phase === "awaiting" ? (
         <div className="text-sm">
@@ -193,6 +201,78 @@ function SharedCopilotSection({ connected, onChange }: { connected: boolean; onC
         </>
       )}
     </section>
+  );
+}
+
+interface ModelOption { id: string; name: string; category: string }
+
+function SharedModelPicker({ model, onChange }: { model: string; onChange: () => void }) {
+  const [models, setModels] = useState<ModelOption[]>([]);
+  const [selected, setSelected] = useState(model);
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch("/api/admin/models");
+        const data = await res.json();
+        if (Array.isArray(data?.models)) setModels(data.models);
+      } catch {
+        /* offline / not connected */
+      }
+    })();
+  }, []);
+
+  async function save() {
+    setBusy(true);
+    setSaved(false);
+    try {
+      if (selected) {
+        await fetch("/api/admin/model", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: selected }),
+        });
+      } else {
+        await fetch("/api/admin/model", { method: "DELETE" });
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+      onChange();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="text-sm font-medium" htmlFor="admin-model">Shared model</label>
+      <select
+        id="admin-model"
+        value={selected}
+        onChange={(e) => setSelected(e.target.value)}
+        className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+      >
+        <option value="">Default (auto-pick from the account)</option>
+        {models.map((m) => (
+          <option key={m.id} value={m.id}>{m.name}{m.category ? ` · ${m.category}` : ""}</option>
+        ))}
+        {selected && !models.some((m) => m.id === selected) && (
+          <option value={selected}>{selected}</option>
+        )}
+      </select>
+      <p className="text-xs text-gray-500">
+        Model used for visitors on the shared account (those who haven&apos;t picked their own).
+      </p>
+      <div className="flex items-center gap-3">
+        <button onClick={save} disabled={busy}
+          className="self-start rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
+          Save model
+        </button>
+        {saved && <span className="text-sm text-green-600">Saved ✓</span>}
+      </div>
+    </div>
   );
 }
 

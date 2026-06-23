@@ -120,8 +120,9 @@ credentials that apply to **all** visitors (a user's own keys/connection always 
 these are the fallback):
 
 - **Connect a shared GitHub Copilot account** (device code) — once connected, everyone can use
-  it for LLM scoring and test/topic generation, without connecting their own. "Disconnect"
-  removes it immediately.
+  it for LLM scoring and test/topic generation, without connecting their own. You can also
+  **pick which model** the shared account uses for visitors. "Disconnect" removes it
+  immediately.
 - **Set / unset a shared Gemini key** — used for live speaking, speaking evaluation and
   listening audio for users who haven't entered their own.
 

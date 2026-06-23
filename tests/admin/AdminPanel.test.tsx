@@ -5,6 +5,7 @@ import { AdminPanel } from "@/components/admin/AdminPanel";
 function mockStatus(data: unknown) {
   vi.stubGlobal("fetch", vi.fn(async (url: string) => {
     if (url.includes("/api/admin/status")) return { ok: true, json: async () => data };
+    if (url.includes("/api/admin/models")) return { ok: true, json: async () => ({ connected: true, models: [] }) };
     return { ok: true, json: async () => ({}) };
   }));
 }
@@ -30,5 +31,11 @@ describe("AdminPanel", () => {
     render(<AdminPanel />);
     await waitFor(() => expect(screen.getByRole("heading", { name: /shared github copilot/i })).toBeInTheDocument());
     expect(screen.getByRole("heading", { name: /shared gemini key/i })).toBeInTheDocument();
+  });
+
+  it("shows the shared model picker when Copilot is connected", async () => {
+    mockStatus({ adminConfigured: true, authenticated: true, copilot: { connected: true }, gemini: { set: false, hint: "" }, model: "gpt-5.5" });
+    render(<AdminPanel />);
+    await waitFor(() => expect(screen.getByLabelText(/shared model/i)).toBeInTheDocument());
   });
 });

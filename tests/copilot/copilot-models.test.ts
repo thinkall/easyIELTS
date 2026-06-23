@@ -198,4 +198,29 @@ describe("chatJsonCopilot", () => {
       chatJsonCopilot({ oauthToken: "gho_x", model: "claude-opus-4.8", system: "s", user: "u", schema, deps: { fetchImpl, now: () => 0 } }),
     ).rejects.toMatchObject({ name: "CopilotError", status: 401 });
   });
+
+  it("parses JSON wrapped in a markdown code fence", async () => {
+    const fenced = "```json\n" + JSON.stringify({ band: 6 }) + "\n```";
+    const fetchImpl = routerFetch({ chat: { choices: [{ message: { content: fenced } }] } });
+    const result = await chatJsonCopilot<{ band: number }>({
+      oauthToken: "gho_x", model: "claude-opus-4.8", system: "s", user: "u", schema, deps: { fetchImpl, now: () => 0 },
+    });
+    expect(result.band).toBe(6);
+  });
+
+  it("parses JSON surrounded by prose", async () => {
+    const prose = "Sure! Here is the test:\n" + JSON.stringify({ band: 9 }) + "\nLet me know if you need changes.";
+    const fetchImpl = routerFetch({ chat: { choices: [{ message: { content: prose } }] } });
+    const result = await chatJsonCopilot<{ band: number }>({
+      oauthToken: "gho_x", model: "claude-opus-4.8", system: "s", user: "u", schema, deps: { fetchImpl, now: () => 0 },
+    });
+    expect(result.band).toBe(9);
+  });
+
+  it("throws CopilotError for content with no JSON object at all", async () => {
+    const fetchImpl = routerFetch({ chat: { choices: [{ message: { content: "I cannot help with that." } }] } });
+    await expect(
+      chatJsonCopilot({ oauthToken: "gho_x", model: "claude-opus-4.8", system: "s", user: "u", schema, deps: { fetchImpl, now: () => 0 } }),
+    ).rejects.toMatchObject({ name: "CopilotError" });
+  });
 });

@@ -12,6 +12,8 @@ const envSchema = z.object({
   // Shared GitHub Copilot OAuth token, managed by the admin page (fallback for
   // users who haven't connected their own).
   EASYIELTS_SHARED_COPILOT_TOKEN: z.string().min(1).optional(),
+  // Admin-selected default model for the shared Copilot account.
+  EASYIELTS_SHARED_MODEL: z.string().min(1).optional(),
   // GitHub OAuth app client id for the device flow. Defaults to the public VS Code
   // GitHub Copilot client id, whose tokens both call GitHub Models AND can be
   // exchanged for a Copilot API token (premium models like Claude/GPT-5.x).

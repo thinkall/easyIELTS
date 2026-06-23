@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import {
   getSharedCopilotToken,
   getSharedGeminiKey,
+  getSharedModel,
   sharedCredentialStatus,
 } from "@/server/shared-credentials";
 
@@ -34,5 +35,17 @@ describe("shared-credentials", () => {
     expect(s.geminiSet).toBe(true);
     expect(s.geminiHint).toContain("1234"); // last 4 shown
     expect(s.geminiHint).not.toContain("AIzaSyABCDEFG"); // body masked
+  });
+
+  it("exposes the admin-selected shared model in status", () => {
+    vi.stubEnv("EASYIELTS_SHARED_MODEL", "gpt-5.5");
+    expect(getSharedModel()).toBe("gpt-5.5");
+    expect(sharedCredentialStatus().model).toBe("gpt-5.5");
+  });
+
+  it("reports an empty model when none is selected", () => {
+    vi.stubEnv("EASYIELTS_SHARED_MODEL", "");
+    expect(getSharedModel()).toBeUndefined();
+    expect(sharedCredentialStatus().model).toBe("");
   });
 });

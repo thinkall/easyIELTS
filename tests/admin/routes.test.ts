@@ -6,6 +6,7 @@ import { POST as login } from "@/app/api/admin/login/route";
 import { GET as status } from "@/app/api/admin/status/route";
 import { POST as setGemini, DELETE as unsetGemini } from "@/app/api/admin/gemini/route";
 import { POST as disconnectCopilot } from "@/app/api/admin/copilot/disconnect/route";
+import { POST as setModel, DELETE as unsetModel } from "@/app/api/admin/model/route";
 import { adminCookieValue } from "@/server/admin-auth";
 
 let dir: string;
@@ -104,5 +105,25 @@ describe("admin copilot disconnect", () => {
     expect(res.status).toBe(200);
     expect(process.env.EASYIELTS_SHARED_COPILOT_TOKEN).toBeUndefined();
     expect(existsSync(join(dir, ".env"))).toBe(true);
+  });
+});
+
+describe("admin shared model set/unset", () => {
+  it("requires authentication", async () => {
+    const res = await setModel(req({ model: "gpt-5.5" }));
+    expect(res.status).toBe(401);
+  });
+  it("writes the selected model to .env and process.env", async () => {
+    const res = await setModel(req({ model: "claude-opus-4.8" }, adminCookie()));
+    expect(res.status).toBe(200);
+    expect(process.env.EASYIELTS_SHARED_MODEL).toBe("claude-opus-4.8");
+    expect(readFileSync(join(dir, ".env"), "utf8")).toContain("EASYIELTS_SHARED_MODEL=claude-opus-4.8");
+  });
+  it("removes the model on DELETE", async () => {
+    writeFileSync(join(dir, ".env"), "EASYIELTS_SHARED_MODEL=gpt-5.5\n");
+    process.env.EASYIELTS_SHARED_MODEL = "gpt-5.5";
+    const res = await unsetModel(req(undefined, adminCookie()));
+    expect(res.status).toBe(200);
+    expect(process.env.EASYIELTS_SHARED_MODEL).toBeUndefined();
   });
 });
