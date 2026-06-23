@@ -271,12 +271,16 @@ the browser (§4.1).
 - **Live mock** via Gemini Live through the backend WS proxy (§8). The model plays an
   IELTS examiner persona (system instruction, server-side) and runs Part 1 → Part 2
   (cue card + 1-min prep + ≤2-min long turn) → Part 3.
-- Input/output transcription is enabled; the full transcript is captured.
-- On session end: scoring combines (a) the **live model's own assessment** (it heard the
-  audio — used especially for **pronunciation**) and (b) a **transcript-based LLM check**
-  via GitHub Models for FC/LR/GRA. Result = 4 criteria + speaking band (average, rounded)
+- Input/output transcription is enabled; the full transcript is captured. The candidate's
+  microphone audio is also captured client-side (16kHz PCM16), silence-compressed and
+  capped (~90s of speech) so the payload and latency stay small.
+- On "Finish", scoring uses **Gemini multimodal `generateContent`** (`GEMINI_API_KEY`,
+  server-side; or the user's own key): the candidate's **audio** + transcript are sent so
+  **Pronunciation is assessed from the real audio** (not approximated). Model fallback list
+  (lite-first) handles free-tier 503/429. If no Gemini key is configured, it falls back to a
+  transcript-only GitHub Models check. Result = 4 criteria + speaking band (average, rounded)
   + feedback.
-- **Caveat:** transcript-only pronunciation scoring is approximate; this is explicitly
+- `pronunciationIsApproximate` is `true` only on the transcript-only fallback and is
   surfaced to the user.
 
 **Speaking evaluation JSON schema:**
