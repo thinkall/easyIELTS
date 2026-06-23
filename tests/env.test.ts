@@ -22,4 +22,8 @@ describe("parseEnv", () => {
     expect(env.GEMINI_API_KEY).toBeUndefined();
     expect(env.GITHUB_MODELS_MODEL).toBe("openai/gpt-4o");
   });
+
+  it("defaults to the Copilot-entitled device-flow client id", () => {
+    expect(parseEnv({ NODE_ENV: "test" }).GITHUB_OAUTH_CLIENT_ID).toBe("01ab8ac9400c4e429b23");
+  });
 });
