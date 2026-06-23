@@ -43,6 +43,11 @@ On Windows the scripts install Node.js via **winget**; on Linux/macOS via **nvm*
 automatic installation isn't possible they print a link to <https://nodejs.org/>. Then open
 the printed URL (default **http://localhost:3000**).
 
+**Public HTTPS in one step (Linux):** set `EASYIELTS_DOMAIN=your.domain.com` in `.env`, then
+`./start.sh` also configures an HTTPS reverse proxy (Caddy on port 8443) and serves the app
+behind it — required for the Speaking microphone. It only needs port 80 briefly (and `sudo`)
+the first time a certificate is issued or renewed; see [HTTPS](#https-required-for-the-microphone).
+
 To run things manually instead, see [Prerequisites](#prerequisites) and [Run](#run) below.
 
 ## Prerequisites
@@ -197,13 +202,15 @@ easyIELTS' own HTTPS on a **non-standard port** (`:8443`). Two ways to get the c
   [`deploy/setup-https-altport.sh`](deploy/setup-https-altport.sh) is one end-to-end script for
   **both first-time setup and renewal**. It grabs a real Let's Encrypt cert via HTTP-01 during a
   short window (it checks port 80 and reminds you to free it if needed), then runs Caddy on
-  `:8443` with that static cert (so it never touches 80/443 at runtime):
+  `:8443` with that static cert (so it never touches 80/443 at runtime). **`start.sh` calls this
+  automatically when `EASYIELTS_DOMAIN` is set**, so normally you just run `./start.sh`. To use
+  it on its own:
   ```bash
   # free port 80 first, e.g.: docker stop <container>
   sudo EASYIELTS_DOMAIN=mywx.liyangai.com bash deploy/setup-https-altport.sh
-  # then restart it; first time only: open TCP 8443 and run  HOST=127.0.0.1 bash start.sh
   ```
-  To **renew** later, free port 80 and run the **same command** again (every ~60 days).
+  It only touches port 80 when the certificate is missing or within 30 days of expiry, so it's
+  safe to run on every launch. To **renew**, free port 80 and run `./start.sh` (or the script) again.
 - **You can't free any port:** use the **DNS-01** challenge instead —
   [`deploy/Caddyfile.altport`](deploy/Caddyfile.altport) (needs your DNS provider's API token).
 

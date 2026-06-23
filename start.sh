@@ -6,6 +6,11 @@
 # restarts: any instance already on the port is stopped first. Logs go to
 # easyielts.log and the background PID to easyielts.pid.
 #
+# HTTPS: if EASYIELTS_DOMAIN is set (env or .env), this also configures/refreshes an
+# HTTPS reverse proxy on EASYIELTS_HTTPS_PORT (default 8443) via Caddy by calling
+# deploy/setup-https-altport.sh (needs sudo; only touches port 80 when a certificate
+# must be issued/renewed). HTTPS is required for the Speaking microphone.
+#
 # Usage:  ./start.sh            # build + start in background (production, default)
 #         ./start.sh --dev      # run the hot-reload dev server in the foreground
 #         kill $(cat easyielts.pid)   # stop the background server
@@ -45,6 +50,18 @@ resolve_port() {
     p="$(grep -E '^[[:space:]]*PORT=' .env 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d ' \t\r"')"
   fi
   echo "${p:-3000}"
+}
+
+# Read a KEY= value from the environment (wins) or .env. Echoes empty if unset.
+env_or_dotenv() {
+  local key="$1" default="${2:-}"
+  local cur="${!key:-}"
+  if [ -n "$cur" ]; then echo "$cur"; return; fi
+  local v=""
+  if [ -f .env ]; then
+    v="$(grep -E "^[[:space:]]*${key}=" .env 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d ' \t\r"')"
+  fi
+  echo "${v:-$default}"
 }
 
 # Print PIDs listening on the given TCP port (best-effort; needs lsof or fuser).
@@ -99,6 +116,24 @@ wait_until_up() {
     tries=$((tries + 1))
   done
   return 1
+}
+
+# Configure/refresh HTTPS via the alternate-port Caddy setup (needs sudo; only
+# touches port 80 when a cert must be issued/renewed). No-op-friendly to re-run.
+setup_https() {
+  local script="$SCRIPT_DIR/deploy/setup-https-altport.sh"
+  if [ ! -f "$script" ]; then
+    warn "HTTPS helper not found: $script — skipping HTTPS."
+    return 1
+  fi
+  info "Configuring HTTPS for ${DOMAIN} on :${HTTPS_PORT} (uses sudo; may ask you to free port 80)..."
+  if sudo EASYIELTS_DOMAIN="$DOMAIN" EASYIELTS_HTTPS_PORT="$HTTPS_PORT" \
+          EASYIELTS_UPSTREAM="127.0.0.1:${PORT}" bash "$script"; then
+    info "✓ HTTPS ready: https://${DOMAIN}:${HTTPS_PORT}"
+  else
+    warn "HTTPS setup did not complete. The app is still running on http://127.0.0.1:${PORT}."
+    warn "Free port 80 and re-run ./start.sh, or see deploy/ for alternatives."
+  fi
 }
 
 node_major() {
@@ -178,9 +213,16 @@ fi
 
 PORT="$(resolve_port)"
 export PORT
-# Bind to all interfaces by default so the site is reachable via the machine's IP
-# or a domain (not just localhost). Override with e.g. HOST=127.0.0.1 ./start.sh.
-export HOST="${HOST:-0.0.0.0}"
+# Optional public domain for HTTPS (set EASYIELTS_DOMAIN in env or .env). When set,
+# we run behind a Caddy HTTPS proxy, so the app binds localhost; otherwise it binds
+# all interfaces so it's reachable directly. Override HOST to change either default.
+DOMAIN="$(env_or_dotenv EASYIELTS_DOMAIN)"
+HTTPS_PORT="$(env_or_dotenv EASYIELTS_HTTPS_PORT 8443)"
+if [ -n "$DOMAIN" ]; then
+  export HOST="${HOST:-127.0.0.1}"
+else
+  export HOST="${HOST:-0.0.0.0}"
+fi
 
 if [ "$DEV_MODE" -eq 1 ]; then
   stop_existing "$PORT"
@@ -203,12 +245,16 @@ echo "$!" >"$PID_FILE"
 if wait_until_up "$PORT"; then
   listen_pids="$(port_pids "$PORT" | tr '\n' ' ')"
   if [ -n "${listen_pids// }" ]; then echo "${listen_pids}" >"$PID_FILE"; fi
-  info "✓ easyIELTS is running in the background."
-  info "    Local:  http://localhost:${PORT}"
-  info "    Public: http://<this-machine-ip-or-domain>:${PORT}  (HOST=${HOST}; open the port in your firewall / cloud security group)"
+  info "✓ easyIELTS is running in the background (app: http://${HOST}:${PORT})."
   info "    Logs:  ${LOG_FILE}  (tail -f to follow)"
   info "    PID:   $(cat "$PID_FILE")  (stored in ${PID_FILE})"
   info "    Stop:  re-run this script to restart, or: kill \$(cat \"${PID_FILE}\")"
+  if [ -n "$DOMAIN" ]; then
+    setup_https
+  else
+    info "    Public: http://<this-machine-ip>:${PORT}  (HOST=${HOST}; open the port in your firewall)"
+    info "    HTTPS (needed for the Speaking mic): set EASYIELTS_DOMAIN in .env and re-run — see deploy/."
+  fi
 else
   err "easyIELTS did not come up within the timeout. Recent logs:"
   tail -n 25 "$LOG_FILE" >&2 2>/dev/null || true

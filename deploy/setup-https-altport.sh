@@ -103,6 +103,18 @@ install_prereqs() {
 LIVE="/etc/letsencrypt/live/${DOMAIN}"
 CERT_DIR="/etc/caddy/certs/${DOMAIN}"
 
+# Does the certificate need to be obtained (first time) or renewed (near expiry)?
+# Lets this script be called on every launch and only touch port 80 when needed.
+cert_needs_action() {
+  [ "$FORCE_RENEW" = "1" ] && return 0
+  [ -f "${LIVE}/fullchain.pem" ] || return 0      # first time
+  # Renew when fewer than 30 days remain.
+  if openssl x509 -checkend "$(( 30*24*3600 ))" -noout -in "${LIVE}/fullchain.pem" >/dev/null 2>&1; then
+    return 1                                        # still valid > 30 days
+  fi
+  return 0                                          # expiring soon
+}
+
 # --- Obtain (first run) or renew (later runs) the certificate via HTTP-01 on :80 ---
 obtain_or_renew_cert() {
   if [ -d "$LIVE" ]; then
@@ -162,14 +174,19 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-ensure_port80_free
 install_prereqs
-obtain_or_renew_cert
+if cert_needs_action; then
+  log "Certificate needs issuing or renewal."
+  ensure_port80_free      # only prompts to free port 80 when actually needed
+  obtain_or_renew_cert
+else
+  log "Certificate is present and valid (>30 days) — no cert action needed."
+fi
 copy_cert_for_caddy
 write_caddyfile
 install_deploy_hook
 systemctl enable caddy >/dev/null 2>&1 || true
-systemctl restart caddy
+systemctl reload caddy 2>/dev/null || systemctl restart caddy
 
 log "Done. easyIELTS HTTPS is configured at:  https://${DOMAIN}:${HTTPS_PORT}"
 log "Now:"

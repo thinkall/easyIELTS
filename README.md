@@ -41,6 +41,11 @@ Node 服务器（`server.ts`）之上，该服务器同时桥接口语功能所�
 自动安装，脚本会给出 <https://nodejs.org/> 链接提示你手动安装。随后在浏览器打开脚本输出的地址
 （默认 **http://localhost:3000**）。
 
+**一步开启公网 HTTPS（Linux）：** 在 `.env` 中设置 `EASYIELTS_DOMAIN=your.domain.com`，然后运行
+`./start.sh` 时会一并配置 HTTPS 反向代理（Caddy，端口 8443）并让应用运行在其后 —— 这是口语麦克风
+所必需的。仅在首次签发或续期证书时需要短暂占用 80 端口（并使用 `sudo`）；详见
+[HTTPS](#https麦克风必需)。
+
 如果想手动操作，请参考下文的 [环境要求](#环境要求) 与 [运行](#运行)。
 
 ## 环境要求
@@ -191,13 +196,14 @@ Caddy 脚本，而应在 **现有** 的 Web 服务器中新增一个虚拟主机
   [`deploy/setup-https-altport.sh`](deploy/setup-https-altport.sh) 是 **同时用于首次部署和续期**
   的一体化脚本。它会在短暂窗口内用 HTTP-01 申请到真正的 Let's Encrypt 证书（脚本会检查 80 端口，
   若被占用会提醒你手动停止），然后让 Caddy 用该静态证书在 `:8443` 提供服务（运行时不再占用
-  80/443）：
+  80/443）。**当设置了 `EASYIELTS_DOMAIN` 时，`start.sh` 会自动调用它**，因此通常你只需运行
+  `./start.sh`。若想单独运行：
   ```bash
   # 先释放 80 端口，例如：docker stop <container>
   sudo EASYIELTS_DOMAIN=mywx.liyangai.com bash deploy/setup-https-altport.sh
-  # 然后重新启用该服务；仅首次需要：放行 TCP 8443 并运行  HOST=127.0.0.1 bash start.sh
   ```
-  之后 **续期** 时，释放 80 端口并再次运行 **同一条命令** 即可（约每 60 天一次）。
+  仅当证书缺失或距到期不足 30 天时才会占用 80 端口，因此每次启动都可安全运行。**续期** 时，释放
+  80 端口并再次运行 `./start.sh`（或该脚本）即可。
 - **无法释放任何端口：** 改用 **DNS-01** 验证 ——
   参见 [`deploy/Caddyfile.altport`](deploy/Caddyfile.altport)（需要 DNS 提供商的 API token）。
 
