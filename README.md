@@ -207,8 +207,8 @@ Caddy 脚本，而应在 **现有** 的 Web 服务器中新增一个虚拟主机
 - **无法释放任何端口：** 改用 **DNS-01** 验证 ——
   参见 [`deploy/Caddyfile.altport`](deploy/Caddyfile.altport)（需要 DNS 提供商的 API token）。
 
-只要是受信任的 HTTPS，麦克风在任意端口都能工作；在防火墙放行 `:8443` 后访问
-`https://your.domain:8443` 即可。
+只要是受信任的 HTTPS，麦克风在任意端口都能工作。脚本会自动在本机防火墙（ufw/firewalld）放行
+`:8443`；但你仍需在 **云安全组** 中手动开放该端口。然后访问 `https://your.domain:8443` 即可。
 
 > 本地无 TLS 的临时测试：Chrome 的 `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
 > 可以把某个 `http://host:3000` 源加入白名单 —— 仅供你自己测试，不适用于面向用户。

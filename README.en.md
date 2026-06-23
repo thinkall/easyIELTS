@@ -214,8 +214,9 @@ easyIELTS' own HTTPS on a **non-standard port** (`:8443`). Two ways to get the c
 - **You can't free any port:** use the **DNS-01** challenge instead —
   [`deploy/Caddyfile.altport`](deploy/Caddyfile.altport) (needs your DNS provider's API token).
 
-The mic works on any port as long as it's trusted HTTPS; open `:8443` in your firewall and
-browse to `https://your.domain:8443`.
+The mic works on any port as long as it's trusted HTTPS. The script opens `:8443` in the
+local firewall automatically (ufw/firewalld); you still need to open it in your **cloud
+security group** manually. Then browse to `https://your.domain:8443`.
 
 > Quick local test without TLS: Chrome's `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
 > can whitelist a specific `http://host:3000` origin — for your own testing only, not for users.

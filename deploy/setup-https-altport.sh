@@ -173,6 +173,22 @@ EOF
   chmod +x "$hook"
 }
 
+# --- Open the HTTPS port in the local firewall (best-effort; only when one is active) ---
+open_local_firewall() {
+  local port="$1"
+  if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -qi '^Status: active'; then
+    log "Opening ${port}/tcp in ufw..."
+    ufw allow "${port}/tcp" >/dev/null 2>&1 || warn "Could not add ufw rule for ${port}/tcp."
+  elif command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state >/dev/null 2>&1; then
+    log "Opening ${port}/tcp in firewalld..."
+    firewall-cmd --permanent --add-port="${port}/tcp" >/dev/null 2>&1 \
+      && firewall-cmd --reload >/dev/null 2>&1 \
+      || warn "Could not add firewalld rule for ${port}/tcp."
+  else
+    log "No active local firewall (ufw/firewalld) detected — nothing to open locally."
+  fi
+}
+
 # ---------------------------------------------------------------------------
 install_prereqs
 if cert_needs_action; then
@@ -187,11 +203,12 @@ write_caddyfile
 install_deploy_hook
 systemctl enable caddy >/dev/null 2>&1 || true
 systemctl reload caddy 2>/dev/null || systemctl restart caddy
+open_local_firewall "$HTTPS_PORT"
 
 log "Done. easyIELTS HTTPS is configured at:  https://${DOMAIN}:${HTTPS_PORT}"
 log "Now:"
 log "  - re-enable your port-80 service (e.g. start the docker container you stopped)"
-log "  - (first time) open inbound TCP ${HTTPS_PORT} in your cloud security group / firewall"
+log "  - open inbound TCP ${HTTPS_PORT} in your CLOUD security group (the VM can't do this for you)"
 log "  - (first time) run the app behind Caddy:  HOST=127.0.0.1 bash start.sh"
 log "  - open  https://${DOMAIN}:${HTTPS_PORT}  — the microphone is now allowed"
 log ""
