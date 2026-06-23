@@ -126,7 +126,7 @@ setup_https() {
     warn "HTTPS helper not found: $script — skipping HTTPS."
     return 1
   fi
-  info "Configuring HTTPS for ${DOMAIN} on :${HTTPS_PORT} (uses sudo; may ask you to free port 80)..."
+  info "Configuring HTTPS for ${DOMAIN} on :${HTTPS_PORT} (uses sudo; frees port 80 only when a certificate must be issued/renewed)..."
   if sudo EASYIELTS_DOMAIN="$DOMAIN" EASYIELTS_HTTPS_PORT="$HTTPS_PORT" \
           EASYIELTS_UPSTREAM="127.0.0.1:${PORT}" bash "$script"; then
     info "✓ HTTPS ready: https://${DOMAIN}:${HTTPS_PORT}"

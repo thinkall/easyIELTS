@@ -107,12 +107,16 @@ CERT_DIR="/etc/caddy/certs/${DOMAIN}"
 # Lets this script be called on every launch and only touch port 80 when needed.
 cert_needs_action() {
   [ "$FORCE_RENEW" = "1" ] && return 0
-  [ -f "${LIVE}/fullchain.pem" ] || return 0      # first time
-  # Renew when fewer than 30 days remain.
+  [ -f "${LIVE}/fullchain.pem" ] || return 0      # first time → must obtain
+  # If openssl isn't available we can't measure remaining validity. A cert exists,
+  # so assume it's still good and do NOT touch port 80 (certbot's own timer can
+  # handle a real renewal); better than forcing a needless port-80 challenge.
+  command -v openssl >/dev/null 2>&1 || return 1
+  # Renew only when fewer than 30 days remain.
   if openssl x509 -checkend "$(( 30*24*3600 ))" -noout -in "${LIVE}/fullchain.pem" >/dev/null 2>&1; then
-    return 1                                        # still valid > 30 days
+    return 1                                        # still valid > 30 days → no action
   fi
-  return 0                                          # expiring soon
+  return 0                                          # expiring soon → renew
 }
 
 # --- Obtain (first run) or renew (later runs) the certificate via HTTP-01 on :80 ---
@@ -205,7 +209,8 @@ if cert_needs_action; then
   ensure_port80_free      # prompts only if some OTHER service still holds port 80
   obtain_or_renew_cert
 else
-  log "Certificate is present and valid (>30 days) — no cert action needed."
+  log "Certificate is present and valid (>30 days) — no renewal needed, so port 80"
+  log "  is NOT touched. (Another service, e.g. docker-proxy on :80, can keep running.)"
 fi
 copy_cert_for_caddy
 write_caddyfile
