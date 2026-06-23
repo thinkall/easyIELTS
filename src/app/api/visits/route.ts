@@ -13,10 +13,10 @@ export async function GET(request: Request) {
     return Response.json({ count: readVisitCount() });
   }
   const count = incrementVisitCount();
+  // Non-sensitive flag; omit Secure so dedup works whether served over HTTP or HTTPS.
   const cookie = serializeCookie(VISITED_COOKIE, "1", {
     maxAge: 60 * 60 * 24 * 365,
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
   });
   return Response.json({ count }, { headers: { "Set-Cookie": cookie } });
 }
