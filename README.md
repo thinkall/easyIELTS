@@ -1,6 +1,6 @@
 # easyIELTS
 
-A web app for **IELTS General Training** preparation, targeting Band 7 in all four skills.
+A web app for **IELTS General Training** preparation across all four skills — Listening, Reading, Writing, and Speaking.
 
 - **Listening & Reading** — auto-scored mock tests with band conversion.
 - **Writing** — LLM evaluation (4 criteria + feedback + model answer). Logged-in users can

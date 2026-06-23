@@ -1,7 +1,6 @@
 import type { ReadingResult } from "@/lib/reading/score-reading";
 
 export function ResultsSummary({ result }: { result: ReadingResult }) {
-  const toSeven = Math.max(0, 7 - result.band);
   return (
     <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-5 dark:border-indigo-900 dark:bg-indigo-950">
       <h2 className="text-lg font-semibold">Your result</h2>
@@ -15,11 +14,7 @@ export function ResultsSummary({ result }: { result: ReadingResult }) {
         {result.raw} / {result.total} correct
         {result.bandIsEstimated && ` (scaled to ${result.scaledTo40}/40)`}
       </p>
-      <p className="mt-2 text-sm">
-        {result.band >= 7
-          ? "On target — Band 7 or above. 🎯"
-          : `${toSeven.toFixed(1)} band(s) below your Band 7 goal.`}
-      </p>
+      <p className="mt-2 text-sm text-gray-500">On the IELTS 0–9 band scale.</p>
     </div>
   );
 }

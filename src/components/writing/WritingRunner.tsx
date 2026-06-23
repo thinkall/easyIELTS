@@ -73,16 +73,14 @@ export function WritingRunner({ test }: { test: WritingTest }) {
     <div className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8">
       <header>
         <h1 className="text-2xl font-bold">{test.title}</h1>
-        <p className="text-sm text-amber-600">🎯 Writing Band = (Task 1 + 2×Task 2) ÷ 3</p>
+        <p className="text-sm text-amber-600">🎯 Writing band = (Task 1 + 2×Task 2) ÷ 3</p>
       </header>
 
       {overall !== null && (
         <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-5 dark:border-indigo-900 dark:bg-indigo-950">
           <h2 className="text-lg font-semibold">Overall Writing band</h2>
           <p className="text-3xl font-bold">Band {overall.toFixed(1)}</p>
-          <p className="mt-1 text-sm">
-            {overall >= 7 ? "On target for Band 7. 🎯" : `${(7 - overall).toFixed(1)} below your Band 7 goal.`}
-          </p>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">On the IELTS 0–9 band scale.</p>
         </div>
       )}
 

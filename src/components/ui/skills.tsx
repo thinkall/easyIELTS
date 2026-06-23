@@ -23,7 +23,7 @@ export const SKILLS: SkillMeta[] = [
   {
     name: "Listening",
     href: "/listening",
-    target: "Band 7 ≈ 30–31 / 40",
+    target: "40 questions · instant band",
     blurb: "Real multi-voice recordings, auto-scored.",
     accent: "text-sky-600 bg-sky-50 dark:bg-sky-950",
     icon: (
@@ -38,7 +38,7 @@ export const SKILLS: SkillMeta[] = [
   {
     name: "Reading",
     href: "/reading",
-    target: "Band 7 ≈ 34–35 / 40 (GT)",
+    target: "GT passages · instant band",
     blurb: "GT passages and questions, instant band.",
     accent: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950",
     icon: (

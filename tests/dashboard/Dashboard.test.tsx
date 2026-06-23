@@ -9,12 +9,12 @@ const attempts: Attempt[] = [
 ];
 
 describe("Dashboard", () => {
-  it("shows per-skill bands and distance to Band 7", () => {
+  it("shows per-skill bands and recent attempts", () => {
     render(<Dashboard attempts={attempts} />);
     expect(screen.getByText(/Reading/)).toBeInTheDocument();
     expect(screen.getAllByText(/6\.5/).length).toBeGreaterThan(0);
     expect(screen.getByText(/Listening/)).toBeInTheDocument();
-    expect(screen.getByText(/0\.5 to go/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/7\.0/).length).toBeGreaterThan(0);
   });
 
   it("shows an empty state when there are no attempts", () => {

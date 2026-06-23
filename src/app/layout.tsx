@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "easyIELTS - IELTS General Training practice",
-  description: "Reach Band 7 in Listening, Reading, Writing, and Speaking.",
+  description: "Practice IELTS General Training — Listening, Reading, Writing, and Speaking — with instant scoring and AI feedback.",
 };
 
 export default function RootLayout({

@@ -18,11 +18,11 @@ export default function Home() {
             IELTS General Training
           </span>
           <h1 className="max-w-3xl text-4xl font-extrabold tracking-tight sm:text-5xl">
-            easyIELTS — reach <span className="text-indigo-600">Band 7</span> in all four skills
+            easyIELTS — practice <span className="text-indigo-600">all four skills</span> with instant feedback
           </h1>
           <p className="max-w-2xl text-lg text-gray-600 dark:text-gray-300">
-            Realistic practice tests with instant scoring, AI-written content, and a live AI speaking examiner.
-            No sign-up required — your progress is saved in your browser.
+            Realistic IELTS General Training practice with instant scoring, AI-written content, and a live AI
+            speaking examiner — whatever band you&apos;re aiming for. No sign-up required; your progress is saved in your browser.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <ButtonLink href="/reading" className="px-6 py-2.5">Start practising</ButtonLink>

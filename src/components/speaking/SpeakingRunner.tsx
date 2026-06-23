@@ -138,7 +138,7 @@ export function SpeakingRunner({
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{test.title}</h1>
-          <p className="text-sm text-amber-600">🎯 Band 7 = wide vocabulary, &gt;50% error-free, natural fluency</p>
+          <p className="text-sm text-gray-500">Scored on Fluency, Lexical Resource, Grammar &amp; Pronunciation (0–9 band scale)</p>
         </div>
         {isLive && (
           <p className="font-mono text-sm text-gray-600 dark:text-gray-300" aria-label="elapsed time">

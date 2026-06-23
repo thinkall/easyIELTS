@@ -16,18 +16,16 @@ export function Dashboard({ attempts }: { attempts: Attempt[] }) {
     <main className="mx-auto flex max-w-4xl flex-col gap-8 px-6 py-12">
       <header>
         <h1 className="text-3xl font-bold">Your progress</h1>
-        <p className="mt-1 text-gray-600 dark:text-gray-300">Goal: Band 7 in all four skills.</p>
+        <p className="mt-1 text-gray-600 dark:text-gray-300">Track your band scores across all four skills.</p>
       </header>
 
       <section className="rounded-xl border border-indigo-200 bg-indigo-50 p-5 dark:border-indigo-900 dark:bg-indigo-950">
         <h2 className="text-sm font-semibold uppercase text-gray-500">Overall band</h2>
         <p className="text-4xl font-bold">{bandText(stats.overall)}</p>
-        <p className="mt-1 text-sm">
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
           {stats.overall === null
             ? "Complete at least one test in each skill to see your overall band."
-            : stats.overall >= 7
-              ? "On target — Band 7 overall. 🎯"
-              : `${stats.overallDistanceToSeven} to go to Band 7.`}
+            : "Your average band across the four skills, on the IELTS 0–9 scale."}
         </p>
       </section>
 
@@ -43,16 +41,12 @@ export function Dashboard({ attempts }: { attempts: Attempt[] }) {
               <div key={skill} className="rounded-xl border border-gray-200 p-5 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">{SKILL_LABELS[skill]}</h3>
-                  {s.metTarget && <span className="text-sm text-green-600">🎯 Band 7</span>}
                 </div>
                 <p className="mt-1 text-3xl font-bold">{bandText(s.latest)}</p>
                 <p className="text-sm text-gray-500">
                   {s.latest === null
                     ? "No attempts yet"
                     : `Best ${bandText(s.best)} · ${s.attempts} attempt${s.attempts === 1 ? "" : "s"}`}
-                  {s.distanceToSeven !== null && s.distanceToSeven > 0 && (
-                    <span className="ml-1 text-amber-600">· {s.distanceToSeven} to go</span>
-                  )}
                 </p>
               </div>
             );

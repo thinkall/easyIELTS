@@ -68,7 +68,7 @@ export function ListeningRunner({ test }: { test: ListeningTest }) {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{test.title}</h1>
-          <p className="text-sm text-amber-600">🎯 Band 7 (Listening) = 30–31 / 40</p>
+          <p className="text-sm text-gray-500">Listening · scored on the IELTS 0–9 band scale</p>
         </div>
         {!submitted && (
           <span className="rounded-lg bg-gray-900 px-3 py-1 font-mono text-white">⏱ {formatTime(secondsLeft)}</span>
