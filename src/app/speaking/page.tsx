@@ -1,27 +1,21 @@
-import Link from "next/link";
 import { getSpeakingTests } from "@/lib/content/speaking";
+import { Container } from "@/components/ui/Container";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { ButtonLink } from "@/components/ui/Button";
+import { TestList } from "@/components/ui/TestList";
 
 export const metadata = { title: "Speaking practice — easyIELTS" };
 
 export default function SpeakingIndexPage() {
   const tests = getSpeakingTests();
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-12">
-      <header>
-        <h1 className="text-3xl font-bold">Speaking practice</h1>
-        <p className="mt-1 text-gray-600 dark:text-gray-300">
-          Talk live with an AI examiner, then get your band and feedback. Requires a microphone.
-        </p>
-      </header>
-      <ul className="flex flex-col gap-3">
-        {tests.map((test) => (
-          <li key={test.id}>
-            <Link href={`/speaking/${test.id}`} className="block rounded-xl border border-gray-200 p-4 hover:border-indigo-400 dark:border-gray-700">
-              <span className="font-semibold">{test.title}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </main>
+    <Container className="py-10">
+      <PageHeader
+        title="Speaking practice"
+        subtitle="Talk live with an AI examiner, then get your band and feedback. Requires a microphone."
+        actions={<ButtonLink href="/speaking/generate">✨ Generate a new topic</ButtonLink>}
+      />
+      <TestList tests={tests.map((t) => ({ href: `/speaking/${t.id}`, title: t.title }))} />
+    </Container>
   );
 }
