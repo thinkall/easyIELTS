@@ -1,9 +1,7 @@
 import { z } from "zod";
 import { scoreSpeakingTranscript } from "@/lib/speaking/score-speaking";
 import { evaluateSpeaking, GeminiEvalError } from "@/server/gemini-eval";
-import { chatJson, GitHubModelsError } from "@/server/github-models";
-import { resolveServerToken } from "@/server/github-token";
-import { getCookie } from "@/server/cookies";
+import { resolveChatJson, chatErrorResponse } from "@/server/llm-router";
 import { rateLimit } from "@/server/rate-limit";
 
 const bodySchema = z.object({
@@ -11,6 +9,7 @@ const bodySchema = z.object({
     .array(z.object({ role: z.enum(["examiner", "candidate"]), text: z.string() }))
     .min(1),
   token: z.string().min(1).optional(),
+  model: z.string().min(1).optional(),
   /** Base64 WAV of the candidate's microphone audio (enables real pronunciation). */
   audio: z.string().min(1).optional(),
   /** The user's own Gemini key (own quota); otherwise the owner key is used. */
@@ -63,28 +62,21 @@ export async function POST(request: Request) {
     }
   }
 
-  // Fallback: transcript-only evaluation via GitHub Models (no Gemini key configured).
-  const userToken = body.token ?? getCookie(request, "eielts_gh");
-  let token = userToken;
-  if (!token) {
-    if (!rateLimit(`speaking:${clientIp(request)}`, 10, 60 * 60 * 1000).allowed) {
-      return Response.json(
-        { error: "Rate limit reached. Sign in with GitHub or use your own token." },
-        { status: 429 },
-      );
-    }
-    token = await resolveServerToken();
+  // Fallback: transcript-only evaluation (no Gemini key configured). A connected
+  // user runs on their Copilot account; otherwise the shared owner token is used.
+  const resolved = await resolveChatJson(request, {
+    model: body.model,
+    bodyToken: body.token,
+    rateLimitKey: "speaking",
+  });
+  if ("error" in resolved) {
+    return Response.json({ error: resolved.error.message }, { status: resolved.error.status });
   }
 
   try {
-    const result = await scoreSpeakingTranscript(body.transcript, (options) =>
-      chatJson({ ...options, token }),
-    );
+    const result = await scoreSpeakingTranscript(body.transcript, resolved.chat);
     return Response.json(result);
   } catch (error) {
-    if (error instanceof GitHubModelsError) {
-      return Response.json({ error: error.message }, { status: error.status });
-    }
-    return Response.json({ error: "Evaluation failed." }, { status: 500 });
+    return chatErrorResponse(error) ?? Response.json({ error: "Evaluation failed." }, { status: 500 });
   }
 }

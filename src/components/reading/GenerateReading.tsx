@@ -15,11 +15,15 @@ export function GenerateReading() {
     setBusy(true);
     setError(null);
     try {
-      const token = getSettings().githubToken;
+      const settings = getSettings();
       const res = await fetch("/api/content/reading", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, ...(token ? { token } : {}) }),
+        body: JSON.stringify({
+          topic,
+          ...(settings.githubToken ? { token: settings.githubToken } : {}),
+          ...(settings.model ? { model: settings.model } : {}),
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

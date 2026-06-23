@@ -12,6 +12,34 @@ A web app for **IELTS General Training** preparation across all four skills — 
 Built with Next.js 16 (App Router) + React 19 + TypeScript + Tailwind v4, behind a custom
 Node server (`server.ts`) that also bridges the Speaking WebSocket proxy.
 
+## Quick start (one command)
+
+The launcher scripts check for Node.js (installing it automatically if it's missing or too
+old), install dependencies, build, and start the site:
+
+**Windows (PowerShell):**
+
+```powershell
+.\start.ps1          # production build + start
+.\start.ps1 -Dev     # development server (hot reload)
+```
+
+> If PowerShell blocks the script, allow it for this session with:
+> `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
+
+**Linux / macOS:**
+
+```bash
+./start.sh           # production build + start
+./start.sh --dev     # development server (hot reload)
+```
+
+On Windows the scripts install Node.js via **winget**; on Linux/macOS via **nvm**. If
+automatic installation isn't possible they print a link to <https://nodejs.org/>. Then open
+the printed URL (default **http://localhost:3000**).
+
+To run things manually instead, see [Prerequisites](#prerequisites) and [Run](#run) below.
+
 ## Prerequisites
 
 - Node.js 20+ (tested on 24)
@@ -29,7 +57,6 @@ GITHUB_MODELS_TOKEN=          # a GitHub token with Models access (shared writin
 GEMINI_API_KEY=               # owner Gemini key (shared speaking proxy)
 
 # Optional overrides (safe defaults applied if unset)
-GITHUB_MODELS_MODEL=openai/gpt-4o
 GEMINI_LIVE_MODEL=gemini-3.1-flash-live-preview
 
 # Server
