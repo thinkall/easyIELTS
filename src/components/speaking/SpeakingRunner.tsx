@@ -60,10 +60,17 @@ export function SpeakingRunner({
     finalizedRef.current = true;
     setStatus("scoring");
     try {
+      const settings = getSettings();
+      const recording = sessionRef.current?.getRecording() ?? null;
       const res = await fetch("/api/speaking/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript: turnsRef.current, ...(getSettings().githubToken ? { token: getSettings().githubToken } : {}) }),
+        body: JSON.stringify({
+          transcript: turnsRef.current,
+          ...(recording ? { audio: recording.base64 } : {}),
+          ...(settings.geminiApiKey ? { geminiApiKey: settings.geminiApiKey } : {}),
+          ...(settings.githubToken ? { token: settings.githubToken } : {}),
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -151,7 +158,7 @@ export function SpeakingRunner({
           Finish &amp; get my band
         </button>
       )}
-      {status === "scoring" && <p className="text-sm text-gray-500">Scoring your responses…</p>}
+      {status === "scoring" && <p className="text-sm text-gray-500">Analysing your audio and scoring your responses… this can take up to a minute.</p>}
       {error && <p className="rounded bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
       {result && (

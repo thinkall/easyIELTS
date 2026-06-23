@@ -14,6 +14,9 @@ const envSchema = z.object({
   // Public base model ids (safe to expose).
   GITHUB_MODELS_MODEL: z.string().default("openai/gpt-4o"),
   GEMINI_LIVE_MODEL: z.string().default("gemini-3.1-flash-live-preview"),
+  // Multimodal model(s) used to evaluate the candidate's recorded speaking audio.
+  // Comma-separated; earlier entries are preferred, later are fallbacks on overload.
+  GEMINI_EVAL_MODEL: z.string().default("gemini-2.5-flash-lite,gemini-3.1-flash-lite,gemini-2.5-flash"),
 });
 
 export type Env = z.infer<typeof envSchema>;

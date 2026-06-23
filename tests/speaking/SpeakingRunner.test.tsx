@@ -3,19 +3,22 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SpeakingRunner } from "@/components/speaking/SpeakingRunner";
 import type { SpeakingSession, SessionCallbacks } from "@/lib/speaking/session";
+import { saveSettings } from "@/lib/settings/settings";
 
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  localStorage.clear();
 });
 
 // A controllable fake session: capture callbacks so the test can emit events.
-function fakeFactory() {
+function fakeFactory(recording: { base64: string; mimeType: string; sampleRate: number } | null = null) {
   let cbs: SessionCallbacks;
   const session: SpeakingSession = {
     start: vi.fn(async () => { cbs.onStatus("live"); }),
     sendText: vi.fn(),
     end: vi.fn(() => cbs.onStatus("ended")),
+    getRecording: vi.fn(() => recording),
   };
   const create = (_part: string, cb: SessionCallbacks) => { cbs = cb; return session; };
   return { create, emit: (e: never) => cbs.onEvent(e), session };
@@ -44,6 +47,28 @@ describe("SpeakingRunner", () => {
     expect(await screen.findByText(/Speaking band/i)).toBeInTheDocument();
     expect(screen.getByText(/Band 7\.0/)).toBeInTheDocument();
     expect(screen.getByText(/extend answers/)).toBeInTheDocument();
+  });
+
+  it("sends the recorded audio and the user's Gemini key on finish", async () => {
+    saveSettings({ geminiApiKey: "user-gem-key" });
+    const f = fakeFactory({ base64: "QUJD", mimeType: "audio/wav", sampleRate: 16000 });
+    const evalResult = {
+      criteria: { fluencyCoherence: 7, lexicalResource: 7, grammaticalRangeAccuracy: 7, pronunciation: 7 },
+      speakingBand: 7, pronunciationIsApproximate: false,
+      feedback: { strengths: [], improvements: [], examples: [] },
+    };
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => evalResult }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<SpeakingRunner test={{ id: "x", skill: "speaking", title: "Part 1", part: "1" }} createSession={f.create} />);
+    await userEvent.click(screen.getByRole("button", { name: /start/i }));
+    act(() => f.emit({ type: "input_transcript", text: "I am an engineer." } as never));
+    await userEvent.click(screen.getByRole("button", { name: /finish/i }));
+    await screen.findByText(/Speaking band/i);
+
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.audio).toBe("QUJD");
+    expect(body.geminiApiKey).toBe("user-gem-key");
   });
 
   it("auto-finishes when live elapsed time reaches six minutes", async () => {

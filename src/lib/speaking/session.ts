@@ -2,6 +2,8 @@ import type { SpeakingEvent } from "./types";
 import { floatTo16BitPCM, int16ToBase64, base64ToInt16, downsample } from "./pcm";
 import { buildSetupMessage, parseServerMessage, encodeAudioChunk, encodeTextTurn } from "./gemini-live";
 import { buildExaminerSystemInstruction } from "./examiner";
+import { buildWavBase64 } from "./wav";
+import { prepareEvalAudio } from "./silence";
 import type { SpeakingPart } from "./types";
 
 export type SessionStatus = "connecting" | "live" | "ended" | "error";
@@ -10,6 +12,8 @@ export interface SpeakingSession {
   start(): Promise<void>;
   sendText(text: string): void;
   end(): void;
+  /** The candidate's captured microphone audio as a base64 WAV, or null if none. */
+  getRecording(): { base64: string; mimeType: string; sampleRate: number } | null;
 }
 
 export interface SessionCallbacks {
@@ -48,6 +52,10 @@ export function createSpeakingSession(
   let ready = false;
   let started = false;
   let kicked = false;
+  // Accumulated candidate microphone audio (16kHz PCM16) for end-of-test evaluation.
+  const recordedChunks: Int16Array[] = [];
+  let recordedSamples = 0;
+  const MAX_RECORDED_SAMPLES = TARGET_INPUT_RATE * 60 * 7; // safety cap (~7 min)
 
   // Kick off the examiner in DIRECT mode (own-key) once BOTH the upstream setup
   // is complete (`ready`) and the local audio graph is up (`started`) — the latter
@@ -140,7 +148,12 @@ export function createSpeakingSession(
         if (closed || !audioCtx) return;
         const frame = ev.data as Float32Array;
         const reduced = downsample(frame, audioCtx.sampleRate, TARGET_INPUT_RATE);
-        const base64 = int16ToBase64(floatTo16BitPCM(reduced));
+        const pcm = floatTo16BitPCM(reduced);
+        if (recordedSamples < MAX_RECORDED_SAMPLES) {
+          recordedChunks.push(pcm);
+          recordedSamples += pcm.length;
+        }
+        const base64 = int16ToBase64(pcm);
         const payload = direct ? encodeAudioChunk(base64) : { type: "audio", data: base64 };
         if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
       };
@@ -173,5 +186,20 @@ export function createSpeakingSession(
     if (!wasClosed) cb.onStatus("ended");
   }
 
-  return { start, sendText, end };
+  function getRecording(): { base64: string; mimeType: string; sampleRate: number } | null {
+    if (recordedSamples === 0) return null;
+    const merged = new Int16Array(recordedSamples);
+    let offset = 0;
+    for (const chunk of recordedChunks) {
+      merged.set(chunk, offset);
+      offset += chunk.length;
+    }
+    // Trim dead air (examiner turns, thinking pauses) and cap the duration so the
+    // payload stays small and evaluation is fast; a speech sample is enough to
+    // assess pronunciation and fluency. The full transcript covers content.
+    const audio = prepareEvalAudio(merged, TARGET_INPUT_RATE);
+    return { base64: buildWavBase64(audio, TARGET_INPUT_RATE), mimeType: "audio/wav", sampleRate: TARGET_INPUT_RATE };
+  }
+
+  return { start, sendText, end, getRecording };
 }
