@@ -190,6 +190,11 @@ Caddy script — add a virtual host to your existing server that proxies `your.d
 
 Then run the app behind it: `HOST=127.0.0.1 bash start.sh` (no need to expose `:3000` publicly).
 
+**80/443 taken by non-web services** (e.g. a Docker app on :80 and v2ray on :443)? Serve
+easyIELTS' own HTTPS on a **non-standard port** (`:8443`) with a DNS-01 certificate —
+see [`deploy/Caddyfile.altport`](deploy/Caddyfile.altport). The mic works on any port as long
+as it's trusted HTTPS; just open `:8443` in your firewall and browse to `https://your.domain:8443`.
+
 > Quick local test without TLS: Chrome's `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
 > can whitelist a specific `http://host:3000` origin — for your own testing only, not for users.
 

@@ -184,6 +184,11 @@ Caddy 脚本，而应在 **现有** 的 Web 服务器中新增一个虚拟主机
 
 然后让应用运行在其后：`HOST=127.0.0.1 bash start.sh`（无需对外暴露 `:3000`）。
 
+**80/443 被非 Web 服务占用**（例如 :80 上的 Docker 应用、:443 上的 v2ray）？可以让 easyIELTS
+在 **非标准端口**（`:8443`）上提供自己的 HTTPS，并用 DNS-01 方式申请证书 ——
+参见 [`deploy/Caddyfile.altport`](deploy/Caddyfile.altport)。只要是受信任的 HTTPS，麦克风在任意
+端口都能工作；在防火墙放行 `:8443` 后访问 `https://your.domain:8443` 即可。
+
 > 本地无 TLS 的临时测试：Chrome 的 `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
 > 可以把某个 `http://host:3000` 源加入白名单 —— 仅供你自己测试，不适用于面向用户。
 

@@ -1,0 +1,33 @@
+# easyIELTS HTTPS on a NON-STANDARD port — for when 80 AND 443 are already taken
+# by other services (e.g. a Docker app on :80 and v2ray on :443).
+#
+# The browser microphone (Speaking) only needs a TRUSTED HTTPS origin; the port can
+# be anything, so we serve on :8443. Because ports 80/443 are unavailable, the usual
+# HTTP-01 / TLS-ALPN-01 certificate challenges can't run — obtain the Let's Encrypt
+# certificate via the DNS-01 challenge instead (works without any inbound port).
+#
+# Setup:
+#   1) Get a Caddy build that bundles your DNS provider's module:
+#        - Download at https://caddyserver.com/download (add e.g. "caddy-dns/cloudflare"), or
+#        - xcaddy build --with github.com/caddy-dns/cloudflare
+#   2) Provide the provider API credentials via env. Example (Cloudflare):
+#        export CF_API_TOKEN=<token with DNS:Edit on the zone>
+#      For another provider, change the `dns` line below and the env var accordingly
+#      (see https://github.com/caddy-dns for module + config names).
+#   3) Run:
+#        EASYIELTS_DOMAIN=mywx.liyangai.com ./caddy run --config deploy/Caddyfile.altport
+#   4) Open inbound TCP 8443 in your cloud security group / firewall.
+#   5) Browse to  https://mywx.liyangai.com:8443  — the mic is now allowed.
+#
+# Keep the app private behind this proxy:  HOST=127.0.0.1 bash start.sh
+
+{$EASYIELTS_DOMAIN}:8443 {
+	encode zstd gzip
+	reverse_proxy {$EASYIELTS_UPSTREAM:127.0.0.1:3000}
+
+	# DNS-01 certificate issuance. Replace `cloudflare {env.CF_API_TOKEN}` with your
+	# provider's directive (the Caddy build must include the matching caddy-dns module).
+	tls {
+		dns cloudflare {env.CF_API_TOKEN}
+	}
+}
