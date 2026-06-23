@@ -88,6 +88,7 @@ function bridge(browser: WebSocket, req: IncomingMessage): void {
   }
 
   const part = (new URL(req.url ?? "", "http://localhost").searchParams.get("part") ?? "1") as SpeakingPart;
+  const topic = new URL(req.url ?? "", "http://localhost").searchParams.get("topic") || undefined;
   const gemini = new WebSocket(`${GEMINI_WS}?key=${apiKey}`);
 
   let closed = false;
@@ -110,7 +111,7 @@ function bridge(browser: WebSocket, req: IncomingMessage): void {
   resetIdle();
 
   gemini.on("open", () => {
-    gemini.send(JSON.stringify(buildSetupMessage(model, buildExaminerSystemInstruction(part))));
+    gemini.send(JSON.stringify(buildSetupMessage(model, buildExaminerSystemInstruction(part, topic))));
   });
   gemini.on("message", (data: Buffer) => {
     try {
