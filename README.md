@@ -185,9 +185,23 @@ Caddy 脚本，而应在 **现有** 的 Web 服务器中新增一个虚拟主机
 然后让应用运行在其后：`HOST=127.0.0.1 bash start.sh`（无需对外暴露 `:3000`）。
 
 **80/443 被非 Web 服务占用**（例如 :80 上的 Docker 应用、:443 上的 v2ray）？可以让 easyIELTS
-在 **非标准端口**（`:8443`）上提供自己的 HTTPS，并用 DNS-01 方式申请证书 ——
-参见 [`deploy/Caddyfile.altport`](deploy/Caddyfile.altport)。只要是受信任的 HTTPS，麦克风在任意
-端口都能工作；在防火墙放行 `:8443` 后访问 `https://your.domain:8443` 即可。
+在 **非标准端口**（`:8443`）上提供自己的 HTTPS。获取证书有两种方式：
+
+- **可以短暂释放 80 端口**（推荐 —— 无需知道 DNS 提供商）：
+  [`deploy/setup-https-altport.sh`](deploy/setup-https-altport.sh) 会在短暂窗口内用 HTTP-01
+  申请到真正的 Let's Encrypt 证书，然后让 Caddy 用该静态证书在 `:8443` 提供服务（运行时不再占用
+  80/443）：
+  ```bash
+  # 先停掉占用 80 的服务，例如：docker stop <container>
+  sudo EASYIELTS_DOMAIN=mywx.liyangai.com bash deploy/setup-https-altport.sh
+  # 然后重新启用该服务，放行 TCP 8443，并运行：HOST=127.0.0.1 bash start.sh
+  ```
+  传入 `EASYIELTS_PORT80_STOP_CMD` / `EASYIELTS_PORT80_START_CMD` 还能让续期自动完成。
+- **无法释放任何端口：** 改用 **DNS-01** 验证 ——
+  参见 [`deploy/Caddyfile.altport`](deploy/Caddyfile.altport)（需要 DNS 提供商的 API token）。
+
+只要是受信任的 HTTPS，麦克风在任意端口都能工作；在防火墙放行 `:8443` 后访问
+`https://your.domain:8443` 即可。
 
 > 本地无 TLS 的临时测试：Chrome 的 `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
 > 可以把某个 `http://host:3000` 源加入白名单 —— 仅供你自己测试，不适用于面向用户。

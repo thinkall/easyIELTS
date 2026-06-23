@@ -191,9 +191,23 @@ Caddy script — add a virtual host to your existing server that proxies `your.d
 Then run the app behind it: `HOST=127.0.0.1 bash start.sh` (no need to expose `:3000` publicly).
 
 **80/443 taken by non-web services** (e.g. a Docker app on :80 and v2ray on :443)? Serve
-easyIELTS' own HTTPS on a **non-standard port** (`:8443`) with a DNS-01 certificate —
-see [`deploy/Caddyfile.altport`](deploy/Caddyfile.altport). The mic works on any port as long
-as it's trusted HTTPS; just open `:8443` in your firewall and browse to `https://your.domain:8443`.
+easyIELTS' own HTTPS on a **non-standard port** (`:8443`). Two ways to get the certificate:
+
+- **You can briefly free port 80** (recommended — no DNS provider needed):
+  [`deploy/setup-https-altport.sh`](deploy/setup-https-altport.sh) grabs a real Let's Encrypt
+  cert via HTTP-01 during a short window, then runs Caddy on `:8443` with that static cert
+  (so it never touches 80/443 at runtime):
+  ```bash
+  # stop the port-80 service first, e.g.: docker stop <container>
+  sudo EASYIELTS_DOMAIN=mywx.liyangai.com bash deploy/setup-https-altport.sh
+  # then restart it, open TCP 8443, and run:  HOST=127.0.0.1 bash start.sh
+  ```
+  Pass `EASYIELTS_PORT80_STOP_CMD` / `EASYIELTS_PORT80_START_CMD` to also automate renewals.
+- **You can't free any port:** use the **DNS-01** challenge instead —
+  [`deploy/Caddyfile.altport`](deploy/Caddyfile.altport) (needs your DNS provider's API token).
+
+The mic works on any port as long as it's trusted HTTPS; open `:8443` in your firewall and
+browse to `https://your.domain:8443`.
 
 > Quick local test without TLS: Chrome's `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
 > can whitelist a specific `http://host:3000` origin — for your own testing only, not for users.
