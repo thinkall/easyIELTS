@@ -22,6 +22,10 @@ const OUTPUT_RATE = 24000;
 const DIRECT_GEMINI_MODEL = "gemini-3.1-flash-live-preview";
 const GEMINI_WS = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
 
+// Gemini Live stays silent until it receives a turn, so once setup completes we
+// send a short opening turn to make the examiner greet and ask the first question.
+const KICKOFF_TURN = "Hello. I'm ready to begin the test.";
+
 /** Build a function that returns the SpeakingEvent(s) for a raw socket message. */
 export interface SpeakingSessionOptions {
   /** If set, connect the browser directly to Gemini (user's own key) instead of the proxy. */
@@ -41,6 +45,19 @@ export function createSpeakingSession(
   let micStream: MediaStream | null = null;
   let playerNode: AudioWorkletNode | null = null;
   let closed = false;
+  let ready = false;
+  let started = false;
+  let kicked = false;
+
+  // Kick off the examiner once BOTH the upstream setup is complete (`ready`) and
+  // the local audio graph is up (`started`) — the latter so the greeting audio
+  // isn't dropped by playAudio before the player node exists.
+  function maybeKickoff(): void {
+    if (kicked || closed || !ready || !started) return;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    kicked = true;
+    ws.send(JSON.stringify(direct ? encodeTextTurn(KICKOFF_TURN) : { type: "text", text: KICKOFF_TURN }));
+  }
 
   // Release every acquired resource. Safe to call repeatedly (all ops tolerate
   // being already-stopped/closed), so it also cleans up resources that were
@@ -64,6 +81,7 @@ export function createSpeakingSession(
   function emit(event: SpeakingEvent) {
     if (event.type === "audio") playAudio(event.data);
     else if (event.type === "interrupted") playerNode?.port.postMessage("flush");
+    else if (event.type === "ready") { ready = true; maybeKickoff(); }
     cb.onEvent(event);
   }
 
@@ -121,6 +139,9 @@ export function createSpeakingSession(
 
       playerNode = new AudioWorkletNode(playerCtx, "player-processor");
       playerNode.connect(playerCtx.destination);
+
+      started = true;
+      maybeKickoff();
     } catch (err) {
       teardown();
       throw err;
