@@ -30,4 +30,11 @@
 	tls {
 		dns cloudflare {env.CF_API_TOKEN}
 	}
+
+	# --- Quick test without any DNS credentials ---
+	# Comment out the `tls { ... }` block above and uncomment the line below to use
+	# Caddy's local CA. Browsers will warn (untrusted cert); after you click through,
+	# the origin is still HTTPS, so the microphone works — handy for verifying setup,
+	# but NOT suitable for real users (they'd see the warning).
+	# tls internal
 }
