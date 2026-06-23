@@ -83,6 +83,21 @@ describe("attachSpeakingProxy", () => {
     expect(JSON.parse(fakeBrowsers[10].sent[0])).toEqual({ type: "error", error: "rate_limited" });
   });
 
+  it("kicks off the examiner once Gemini setup completes", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "key");
+    const { attachSpeakingProxy } = await import("@/server/speaking-proxy");
+    const server = makeServer();
+    attachSpeakingProxy(server as Server);
+
+    emitUpgrade(server, "/ws/speaking?part=1");
+    const gemini = fakeGeminis[0];
+    gemini.emit("message", Buffer.from(JSON.stringify({ setupComplete: {} })));
+
+    const kickoff = gemini.sent.map((s) => JSON.parse(s)).find((m) => m.clientContent);
+    expect(kickoff).toBeTruthy();
+    expect(kickoff.clientContent.turnComplete).toBe(true);
+  });
+
   it("destroys unsupported upgrade sockets when no other upgrade handler is present", async () => {
     const { attachSpeakingProxy } = await import("@/server/speaking-proxy");
     const server = makeServer();

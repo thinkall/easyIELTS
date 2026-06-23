@@ -49,14 +49,15 @@ export function createSpeakingSession(
   let started = false;
   let kicked = false;
 
-  // Kick off the examiner once BOTH the upstream setup is complete (`ready`) and
-  // the local audio graph is up (`started`) — the latter so the greeting audio
-  // isn't dropped by playAudio before the player node exists.
+  // Kick off the examiner in DIRECT mode (own-key) once BOTH the upstream setup
+  // is complete (`ready`) and the local audio graph is up (`started`) — the latter
+  // so the greeting audio isn't dropped before the player node exists. In proxy
+  // mode the server sends the kickoff (so it works regardless of client state).
   function maybeKickoff(): void {
-    if (kicked || closed || !ready || !started) return;
+    if (kicked || closed || !direct || !ready || !started) return;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     kicked = true;
-    ws.send(JSON.stringify(direct ? encodeTextTurn(KICKOFF_TURN) : { type: "text", text: KICKOFF_TURN }));
+    ws.send(JSON.stringify(encodeTextTurn(KICKOFF_TURN)));
   }
 
   // Release every acquired resource. Safe to call repeatedly (all ops tolerate

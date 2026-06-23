@@ -11,6 +11,9 @@ const MAX_SESSION_MS = 6 * 60 * 1000; // hard cost cap
 const IDLE_TIMEOUT_MS = 90 * 1000; // close if the browser is silent for 90s
 const SESSION_LIMIT = 10;
 const SESSION_WINDOW_MS = 60 * 60 * 1000;
+// Gemini Live stays silent until it receives a turn, so once setup completes we
+// send a short opening turn to make the examiner greet and ask the first question.
+const KICKOFF_TURN = "Hello. I'm ready to begin the test.";
 
 interface WindowState {
   count: number;
@@ -88,6 +91,7 @@ function bridge(browser: WebSocket, req: IncomingMessage): void {
   const gemini = new WebSocket(`${GEMINI_WS}?key=${apiKey}`);
 
   let closed = false;
+  let kicked = false;
   let idle: ReturnType<typeof setTimeout>;
   const resetIdle = () => {
     clearTimeout(idle);
@@ -112,6 +116,12 @@ function bridge(browser: WebSocket, req: IncomingMessage): void {
     try {
       const parsed: unknown = JSON.parse(data.toString());
       if (typeof parsed !== "object" || parsed === null) return;
+      // Once Gemini confirms setup, kick off the examiner so it greets and asks
+      // the first question instead of waiting silently for the candidate.
+      if (!kicked && (parsed as { setupComplete?: unknown }).setupComplete !== undefined) {
+        kicked = true;
+        gemini.send(JSON.stringify(encodeTextTurn(KICKOFF_TURN)));
+      }
       for (const event of parseServerMessage(parsed as never)) send(browser, event);
     } catch {
       // Ignore malformed upstream frames.

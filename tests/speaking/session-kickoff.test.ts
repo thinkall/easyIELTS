@@ -38,25 +38,33 @@ function stubAudio() {
 afterEach(() => { vi.unstubAllGlobals(); instances.length = 0; });
 
 describe("speaking session kickoff", () => {
-  it("sends a kickoff turn once the session is ready and the audio graph is up", async () => {
+  it("sends a kickoff turn in direct mode once ready and the audio graph is up", async () => {
+    stubAudio();
+    const session = createSpeakingSession("1", { onEvent: () => {}, onStatus: () => {} }, { geminiApiKey: "K" });
+    await session.start();
+    const ws = instances[0];
+    // Direct mode parses raw Gemini frames; setupComplete -> "ready".
+    ws.onmessage?.({ data: JSON.stringify({ setupComplete: {} }) });
+    const kickoff = ws.sent.map((s) => JSON.parse(s)).find((m) => m.clientContent);
+    expect(kickoff).toBeTruthy();
+    expect(kickoff.clientContent.turnComplete).toBe(true);
+  });
+
+  it("does not kick off client-side in proxy mode (the server does)", async () => {
     stubAudio();
     const session = createSpeakingSession("1", { onEvent: () => {}, onStatus: () => {} });
     await session.start();
     const ws = instances[0];
-    // Simulate Gemini's setupComplete (proxy forwards it as a "ready" event).
     ws.onmessage?.({ data: JSON.stringify({ type: "ready" }) });
-    const kickoff = ws.sent.map((s) => JSON.parse(s)).find((m) => m.type === "text");
-    expect(kickoff).toBeTruthy();
-    expect(typeof kickoff.text).toBe("string");
-    expect(kickoff.text.length).toBeGreaterThan(0);
+    const sent = ws.sent.map((s) => JSON.parse(s));
+    expect(sent.find((m) => m.clientContent || m.type === "text")).toBeFalsy();
   });
 
   it("does not kick off before the session is ready", async () => {
     stubAudio();
-    const session = createSpeakingSession("1", { onEvent: () => {}, onStatus: () => {} });
+    const session = createSpeakingSession("1", { onEvent: () => {}, onStatus: () => {} }, { geminiApiKey: "K" });
     await session.start();
     const ws = instances[0];
-    const kickoff = ws.sent.map((s) => JSON.parse(s)).find((m) => m.type === "text");
-    expect(kickoff).toBeFalsy();
+    expect(ws.sent.map((s) => JSON.parse(s)).find((m) => m.clientContent)).toBeFalsy();
   });
 });
