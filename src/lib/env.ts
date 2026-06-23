@@ -7,6 +7,11 @@ const envSchema = z.object({
   // Owner-configured keys — server-only, never sent to the client.
   GITHUB_MODELS_TOKEN: z.string().min(1).optional(),
   GEMINI_API_KEY: z.string().min(1).optional(),
+  // Admin page password. When set, /admin lets the owner manage shared credentials.
+  ADMIN_PASSWORD: z.string().min(1).optional(),
+  // Shared GitHub Copilot OAuth token, managed by the admin page (fallback for
+  // users who haven't connected their own).
+  EASYIELTS_SHARED_COPILOT_TOKEN: z.string().min(1).optional(),
   // GitHub OAuth app client id for the device flow. Defaults to the public VS Code
   // GitHub Copilot client id, whose tokens both call GitHub Models AND can be
   // exchanged for a Copilot API token (premium models like Claude/GPT-5.x).

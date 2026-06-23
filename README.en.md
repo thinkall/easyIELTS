@@ -113,6 +113,23 @@ Once connected, requests run on your own (unlimited) Copilot account instead of 
 rate-limited shared path. Your GitHub token stays in an httpOnly cookie and is exchanged for
 a Copilot token **server-side** — it is never exposed to the browser.
 
+## Admin page (shared credentials for everyone)
+
+Set **`ADMIN_PASSWORD`** in `.env` to enable **`/admin`**. After signing in there, you can set
+credentials that apply to **all** visitors (a user's own keys/connection always take priority;
+these are the fallback):
+
+- **Connect a shared GitHub Copilot account** (device code) — once connected, everyone can use
+  it for LLM scoring and test/topic generation, without connecting their own. "Disconnect"
+  removes it immediately.
+- **Set / unset a shared Gemini key** — used for live speaking, speaking evaluation and
+  listening audio for users who haven't entered their own.
+
+Changes are written to `.env` (so they persist across restarts) and applied live — no restart
+needed. The admin page never returns the raw secrets to the browser (only status + a masked
+hint). The per-user **/settings → Connect with device code** is unchanged and stays personal to
+that browser. If `ADMIN_PASSWORD` is unset, `/admin` is disabled.
+
 ## Routes
 
 | Path | Description |
@@ -125,6 +142,7 @@ a Copilot token **server-side** — it is never exposed to the browser.
 | `/dashboard` | Your attempts & band progress |
 | `/settings` | Your API keys + model selection |
 | `/connect` | Connect GitHub (device flow) |
+| `/admin` | Owner: shared Gemini key + shared Copilot (needs `ADMIN_PASSWORD`) |
 
 ## Test, lint, build
 

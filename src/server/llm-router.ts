@@ -4,6 +4,7 @@ import { CopilotError } from "@/server/copilot-token";
 import { resolveServerToken } from "@/server/github-token";
 import { getCookie } from "@/server/cookies";
 import { rateLimit } from "@/server/rate-limit";
+import { getSharedCopilotToken } from "@/server/shared-credentials";
 
 export type ChatJsonFn = (options: {
   system: string;
@@ -53,35 +54,71 @@ function clientIp(request: Request): string {
 }
 
 /**
- * Build a structured-JSON chat function for a generation/evaluation route, routing
- * a selected premium model id (no vendor prefix, e.g. "gpt-5.5") through the user's
- * connected GitHub Copilot account, and otherwise through the shared GitHub Models
- * API (user token → device-flow cookie → rate-limited owner token).
+ * Build a structured-JSON chat function for a generation/evaluation route.
+ *
+ * Routing (a user's own credential always wins; the admin's shared Copilot is the
+ * fallback for users who haven't connected their own):
+ *  - vendor-prefixed id (e.g. "openai/gpt-5")     → GitHub Models (explicit opt-in)
+ *  - bare *premium* id → Copilot via the user's cookie, else the shared admin token,
+ *    else 401 (connect / ask admin)
+ *  - no model → the user's own credential first (cookie Copilot, then a body GitHub
+ *    Models token), then the shared admin Copilot, then the rate-limited owner token
  */
 export async function resolveChatJson(
   request: Request,
   opts: { model?: string; bodyToken?: string; rateLimitKey: string; rateLimitMax?: number },
 ): Promise<ChatResolution> {
   const cookieToken = getCookie(request, "eielts_gh");
-  // A vendor-prefixed id (e.g. "openai/gpt-5") is an explicit GitHub Models request;
-  // anything else from a connected user should run on their (unlimited) Copilot account.
+  const sharedToken = getSharedCopilotToken();
+  // A vendor-prefixed id (e.g. "openai/gpt-5") is an explicit GitHub Models request.
   const wantsGitHubModels = !!opts.model && opts.model.includes("/");
 
-  if (isCopilotModel(opts.model)) {
-    if (!cookieToken) {
-      return { error: { message: "Connect GitHub (device code) in Settings to use this model.", status: 401 } };
-    }
-    return { chat: (o) => chatJsonCopilot({ ...o, oauthToken: cookieToken, model: opts.model! }) };
+  // Explicit GitHub Models request → token path (own token → rate-limited owner).
+  if (wantsGitHubModels) {
+    return githubModelsResolution(request, opts);
   }
 
-  // Connected user with no specific GitHub Models model selected → route through
-  // Copilot with a default model, avoiding the rate-limited GitHub Models API.
-  if (cookieToken && !wantsGitHubModels) {
+  // A bare premium id (e.g. "gpt-5.5") can only run on Copilot. The user's own
+  // connected account (cookie) wins; otherwise fall back to the shared admin account.
+  if (isCopilotModel(opts.model)) {
+    const copilotOauth = cookieToken ?? sharedToken;
+    if (copilotOauth) {
+      return { chat: (o) => chatJsonCopilot({ ...o, oauthToken: copilotOauth, model: opts.model! }) };
+    }
+    return {
+      error: {
+        message:
+          "Connect GitHub (device code) in Settings to use this model, or ask the site admin to connect a shared account.",
+        status: 401,
+      },
+    };
+  }
+
+  // No model selected. Honour the user's OWN credential before any shared fallback:
+  //  1. their connected Copilot account (cookie),
+  //  2. their own GitHub Models token (body.token), then
+  //  3. the admin's shared Copilot, then
+  //  4. the rate-limited owner GitHub Models token.
+  if (cookieToken) {
     const model = await pickDefaultCopilotModel(cookieToken);
     return { chat: (o) => chatJsonCopilot({ ...o, oauthToken: cookieToken, model }) };
   }
+  if (opts.bodyToken) {
+    return githubModelsResolution(request, opts);
+  }
+  if (sharedToken) {
+    const model = await pickDefaultCopilotModel(sharedToken);
+    return { chat: (o) => chatJsonCopilot({ ...o, oauthToken: sharedToken, model }) };
+  }
+  return githubModelsResolution(request, opts);
+}
 
-  let token = opts.bodyToken ?? cookieToken;
+/** GitHub Models path: user body/cookie token, else rate-limited owner token. */
+async function githubModelsResolution(
+  request: Request,
+  opts: { model?: string; bodyToken?: string; rateLimitKey: string; rateLimitMax?: number },
+): Promise<ChatResolution> {
+  let token = opts.bodyToken ?? getCookie(request, "eielts_gh");
   if (!token) {
     const limit = rateLimit(`${opts.rateLimitKey}:${clientIp(request)}`, opts.rateLimitMax ?? 10, 60 * 60 * 1000);
     if (!limit.allowed) {

@@ -91,7 +91,10 @@ export function SettingsForm() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Or connect GitHub with a device code</h2>
+        <h2 className="text-lg font-semibold">Or connect GitHub with a device code (just for you)</h2>
+        <p className="text-sm text-gray-600 dark:text-gray-300">
+          This connects your own GitHub Copilot account in this browser only. It doesn&apos;t affect other users.
+        </p>
         <ConnectGitHub />
       </section>
 
