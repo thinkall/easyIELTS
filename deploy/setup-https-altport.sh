@@ -147,8 +147,9 @@ write_caddyfile() {
   install -d /etc/caddy
   cat > /etc/caddy/Caddyfile <<EOF
 {
-	# Use the supplied certificate only; do not run ACME or bind 80/443.
-	auto_https disable_redirects
+	# Use the supplied certificate only. 'auto_https off' disables ACME AND the
+	# HTTP server on :80, so Caddy binds ONLY :${HTTPS_PORT} (no 80/443 conflict).
+	auto_https off
 }
 
 ${DOMAIN}:${HTTPS_PORT} {
@@ -193,7 +194,15 @@ open_local_firewall() {
 install_prereqs
 if cert_needs_action; then
   log "Certificate needs issuing or renewal."
-  ensure_port80_free      # only prompts to free port 80 when actually needed
+  # certbot's standalone challenge needs port 80. Stop our OWN Caddy first so it
+  # isn't what's blocking it; the config rewrite + restart below brings it back on
+  # :${HTTPS_PORT} only. (If Caddy was holding 80, this is what 'frees' it.)
+  if systemctl is-active --quiet caddy 2>/dev/null; then
+    log "Stopping Caddy to free port 80 for the certificate challenge..."
+    systemctl stop caddy || true
+    sleep 1
+  fi
+  ensure_port80_free      # prompts only if some OTHER service still holds port 80
   obtain_or_renew_cert
 else
   log "Certificate is present and valid (>30 days) — no cert action needed."
