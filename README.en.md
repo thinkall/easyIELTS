@@ -194,15 +194,16 @@ Then run the app behind it: `HOST=127.0.0.1 bash start.sh` (no need to expose `:
 easyIELTS' own HTTPS on a **non-standard port** (`:8443`). Two ways to get the certificate:
 
 - **You can briefly free port 80** (recommended — no DNS provider needed):
-  [`deploy/setup-https-altport.sh`](deploy/setup-https-altport.sh) grabs a real Let's Encrypt
-  cert via HTTP-01 during a short window, then runs Caddy on `:8443` with that static cert
-  (so it never touches 80/443 at runtime):
+  [`deploy/setup-https-altport.sh`](deploy/setup-https-altport.sh) is one end-to-end script for
+  **both first-time setup and renewal**. It grabs a real Let's Encrypt cert via HTTP-01 during a
+  short window (it checks port 80 and reminds you to free it if needed), then runs Caddy on
+  `:8443` with that static cert (so it never touches 80/443 at runtime):
   ```bash
-  # stop the port-80 service first, e.g.: docker stop <container>
+  # free port 80 first, e.g.: docker stop <container>
   sudo EASYIELTS_DOMAIN=mywx.liyangai.com bash deploy/setup-https-altport.sh
-  # then restart it, open TCP 8443, and run:  HOST=127.0.0.1 bash start.sh
+  # then restart it; first time only: open TCP 8443 and run  HOST=127.0.0.1 bash start.sh
   ```
-  Pass `EASYIELTS_PORT80_STOP_CMD` / `EASYIELTS_PORT80_START_CMD` to also automate renewals.
+  To **renew** later, free port 80 and run the **same command** again (every ~60 days).
 - **You can't free any port:** use the **DNS-01** challenge instead —
   [`deploy/Caddyfile.altport`](deploy/Caddyfile.altport) (needs your DNS provider's API token).
 
