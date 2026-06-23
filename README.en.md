@@ -164,59 +164,43 @@ proxy won't run there; everything else would work.
 ## HTTPS (required for the microphone)
 
 Browsers only allow microphone access (`getUserMedia`, used by **Speaking**) on a **secure
-context** — HTTPS or `localhost`. A public **HTTP** site has the mic **blocked by Chrome**, so
-serve it over HTTPS.
+context** — HTTPS or `localhost`. A public **HTTP** site has the mic **blocked**, so serve it
+over HTTPS.
 
-If you self-host on a VM with a domain, this repo includes a one-command **Caddy** reverse
-proxy (auto Let's Encrypt TLS; it also proxies the speaking WebSocket):
+**Recommended: let `start.sh` do it.** Set your domain in `.env`:
 
 ```bash
-# DNS must point the domain at the VM, and ports 80 + 443 must be open.
-bash start.sh                                            # app on :3000
-sudo EASYIELTS_DOMAIN=your.domain.com bash deploy/setup-https.sh
-# then open https://your.domain.com  (mic now allowed)
+EASYIELTS_DOMAIN=your.domain.com     # DNS must point at this machine
 ```
 
-See [`deploy/Caddyfile`](deploy/Caddyfile) / [`deploy/setup-https.sh`](deploy/setup-https.sh).
-Managed hosts (Render, Fly.io, …) already give you HTTPS, so the mic works there out of the box.
+then run `./start.sh`. It runs the app privately on `127.0.0.1:3000`, puts a **Caddy HTTPS
+reverse proxy on `:8443`** in front (real Let's Encrypt cert; the speaking WebSocket is proxied
+too), and opens `:8443` in the local firewall. Open **https://your.domain.com:8443** — mic works.
 
-### Already running a web server on 80/443?
+> Using `:8443` means it never conflicts with whatever runs on 80/443. It needs port 80 free
+> only briefly, and only when a certificate must be issued or renewed (first run, then ~every
+> 60 days) — it will tell you to stop whatever uses port 80, then you restart it. You still must
+> open `:8443` in your **cloud security group** (the VM can't do that). Change the port with
+> `EASYIELTS_HTTPS_PORT`.
 
-If another site already uses ports 80/443 (Nginx/Apache/Caddy), **don't** run the standalone
-Caddy script — add a virtual host to your existing server that proxies `your.domain.com` to
-`127.0.0.1:3000` (forwarding WebSockets for Speaking). Ready-made snippets:
+**Managed hosts** (Render, Fly.io, …) already provide HTTPS, so the mic works out of the box.
 
-- **Nginx:** [`deploy/nginx-easyielts.conf`](deploy/nginx-easyielts.conf) → copy to
-  `/etc/nginx/conf.d/`, run `sudo certbot --nginx -d your.domain.com`, `sudo nginx -t && sudo systemctl reload nginx`.
-- **Apache:** [`deploy/apache-easyielts.conf`](deploy/apache-easyielts.conf) → `a2enmod proxy
-  proxy_http proxy_wstunnel rewrite ssl headers`, enable the site, `sudo certbot --apache -d your.domain.com`.
-- **Caddy (existing):** add the block from [`deploy/Caddyfile`](deploy/Caddyfile) to your
-  existing `Caddyfile` and reload — Caddy serves many domains on 80/443 at once.
+### Other setups
 
-Then run the app behind it: `HOST=127.0.0.1 bash start.sh` (no need to expose `:3000` publicly).
+Depending on what already uses ports 80/443, you can also (all run the app behind the proxy
+with `HOST=127.0.0.1`):
 
-**80/443 taken by non-web services** (e.g. a Docker app on :80 and v2ray on :443)? Serve
-easyIELTS' own HTTPS on a **non-standard port** (`:8443`). Two ways to get the certificate:
-
-- **You can briefly free port 80** (recommended — no DNS provider needed):
-  [`deploy/setup-https-altport.sh`](deploy/setup-https-altport.sh) is one end-to-end script for
-  **both first-time setup and renewal**. It grabs a real Let's Encrypt cert via HTTP-01 during a
-  short window (it checks port 80 and reminds you to free it if needed), then runs Caddy on
-  `:8443` with that static cert (so it never touches 80/443 at runtime). **`start.sh` calls this
-  automatically when `EASYIELTS_DOMAIN` is set**, so normally you just run `./start.sh`. To use
-  it on its own:
-  ```bash
-  # free port 80 first, e.g.: docker stop <container>
-  sudo EASYIELTS_DOMAIN=mywx.liyangai.com bash deploy/setup-https-altport.sh
-  ```
-  It only touches port 80 when the certificate is missing or within 30 days of expiry, so it's
-  safe to run on every launch. To **renew**, free port 80 and run `./start.sh` (or the script) again.
-- **You can't free any port:** use the **DNS-01** challenge instead —
-  [`deploy/Caddyfile.altport`](deploy/Caddyfile.altport) (needs your DNS provider's API token).
-
-The mic works on any port as long as it's trusted HTTPS. The script opens `:8443` in the
-local firewall automatically (ufw/firewalld); you still need to open it in your **cloud
-security group** manually. Then browse to `https://your.domain:8443`.
+- **80/443 are free** → standalone Caddy for a clean `https://your.domain.com` (no port suffix):
+  `sudo EASYIELTS_DOMAIN=your.domain.com bash deploy/setup-https.sh` (see
+  [`deploy/Caddyfile`](deploy/Caddyfile)).
+- **An existing web server owns 80/443** (Nginx/Apache/Caddy) → add a vhost proxying
+  `your.domain.com` → `127.0.0.1:3000` (WebSocket-enabled):
+  [`deploy/nginx-easyielts.conf`](deploy/nginx-easyielts.conf),
+  [`deploy/apache-easyielts.conf`](deploy/apache-easyielts.conf), or add the
+  [`deploy/Caddyfile`](deploy/Caddyfile) block to your existing Caddy.
+- **Non-web services own 80/443 and you can't free even port 80** → use the alternate port with
+  a **DNS-01** certificate: [`deploy/Caddyfile.altport`](deploy/Caddyfile.altport) (needs your
+  DNS provider's API token).
 
 > Quick local test without TLS: Chrome's `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
 > can whitelist a specific `http://host:3000` origin — for your own testing only, not for users.

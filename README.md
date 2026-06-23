@@ -159,56 +159,37 @@ fly launch        # 会自动识别 Dockerfile；用 fly secrets set KEY=value �
 ## HTTPS（麦克风必需）
 
 浏览器只允许在 **安全上下文**（HTTPS 或 `localhost`）下访问麦克风（`getUserMedia`，**口语** 模块
-要用到）。公网上的 **HTTP** 站点会被 Chrome **禁用麦克风**，因此必须使用 HTTPS 提供服务。
+要用到）。公网上的 **HTTP** 站点会被浏览器 **禁用麦克风**，因此必须使用 HTTPS 提供服务。
 
-如果你在带域名的 VM 上自托管，本仓库提供了一条命令搞定的 **Caddy** 反向代理（自动申请
-Let's Encrypt 证书，并同时代理口语所需的 WebSocket）：
+**推荐：交给 `start.sh` 自动完成。** 在 `.env` 中设置你的域名：
 
 ```bash
-# 域名 DNS 需指向该 VM，且需开放 80 与 443 端口。
-bash start.sh                                            # 应用运行在 :3000
-sudo EASYIELTS_DOMAIN=your.domain.com bash deploy/setup-https.sh
-# 然后打开 https://your.domain.com（此时麦克风即被允许）
+EASYIELTS_DOMAIN=your.domain.com     # 该域名的 DNS 需指向本机
 ```
 
-参见 [`deploy/Caddyfile`](deploy/Caddyfile) / [`deploy/setup-https.sh`](deploy/setup-https.sh)。
-托管平台（Render、Fly.io 等）本身已提供 HTTPS，因此麦克风开箱即用。
+然后运行 `./start.sh`。它会把应用私有地运行在 `127.0.0.1:3000`，并在其前面架设一个
+**Caddy HTTPS 反向代理（端口 `:8443`）**（真实的 Let's Encrypt 证书，并代理口语所需的
+WebSocket），同时在本机防火墙放行 `:8443`。随后访问 **https://your.domain.com:8443** —— 麦克风即可使用。
 
-### 80/443 已被其它网站占用？
+> 使用 `:8443` 端口，因此不会与 80/443 上的任何服务冲突。仅在需要签发或续期证书时（首次，之后约每
+> 60 天一次）才会短暂占用 80 端口 —— 届时脚本会提示你停止占用 80 的服务，完成后再启动回来。你仍需
+> 在 **云安全组** 中手动放行 `:8443`（VM 无法代你完成）。可用 `EASYIELTS_HTTPS_PORT` 修改端口。
 
-如果服务器上已有其它站点在使用 80/443 端口（Nginx/Apache/Caddy），**不要** 运行上面的独立
-Caddy 脚本，而应在 **现有** 的 Web 服务器中新增一个虚拟主机，把 `your.domain.com` 反向代理到
-`127.0.0.1:3000`（并转发口语所需的 WebSocket）。现成配置片段：
+**托管平台**（Render、Fly.io 等）本身已提供 HTTPS，麦克风开箱即用。
 
-- **Nginx：** [`deploy/nginx-easyielts.conf`](deploy/nginx-easyielts.conf) → 复制到
-  `/etc/nginx/conf.d/`，执行 `sudo certbot --nginx -d your.domain.com`，然后 `sudo nginx -t && sudo systemctl reload nginx`。
-- **Apache：** [`deploy/apache-easyielts.conf`](deploy/apache-easyielts.conf) → 先
-  `a2enmod proxy proxy_http proxy_wstunnel rewrite ssl headers`，启用站点，再 `sudo certbot --apache -d your.domain.com`。
-- **Caddy（已在运行）：** 把 [`deploy/Caddyfile`](deploy/Caddyfile) 里的站点块加入你现有的
-  `Caddyfile` 并重载即可 —— Caddy 可同时为多个域名服务于 80/443。
+### 其它部署情况
 
-然后让应用运行在其后：`HOST=127.0.0.1 bash start.sh`（无需对外暴露 `:3000`）。
+根据 80/443 端口上已有的服务，你也可以采用下列方式（均可让应用运行在 `HOST=127.0.0.1` 之后）：
 
-**80/443 被非 Web 服务占用**（例如 :80 上的 Docker 应用、:443 上的 v2ray）？可以让 easyIELTS
-在 **非标准端口**（`:8443`）上提供自己的 HTTPS。获取证书有两种方式：
-
-- **可以短暂释放 80 端口**（推荐 —— 无需知道 DNS 提供商）：
-  [`deploy/setup-https-altport.sh`](deploy/setup-https-altport.sh) 是 **同时用于首次部署和续期**
-  的一体化脚本。它会在短暂窗口内用 HTTP-01 申请到真正的 Let's Encrypt 证书（脚本会检查 80 端口，
-  若被占用会提醒你手动停止），然后让 Caddy 用该静态证书在 `:8443` 提供服务（运行时不再占用
-  80/443）。**当设置了 `EASYIELTS_DOMAIN` 时，`start.sh` 会自动调用它**，因此通常你只需运行
-  `./start.sh`。若想单独运行：
-  ```bash
-  # 先释放 80 端口，例如：docker stop <container>
-  sudo EASYIELTS_DOMAIN=mywx.liyangai.com bash deploy/setup-https-altport.sh
-  ```
-  仅当证书缺失或距到期不足 30 天时才会占用 80 端口，因此每次启动都可安全运行。**续期** 时，释放
-  80 端口并再次运行 `./start.sh`（或该脚本）即可。
-- **无法释放任何端口：** 改用 **DNS-01** 验证 ——
+- **80/443 空闲** → 用独立 Caddy 获得不带端口后缀的 `https://your.domain.com`：
+  `sudo EASYIELTS_DOMAIN=your.domain.com bash deploy/setup-https.sh`
+  （参见 [`deploy/Caddyfile`](deploy/Caddyfile)）。
+- **已有 Web 服务器占用 80/443**（Nginx/Apache/Caddy）→ 新增一个虚拟主机，把 `your.domain.com`
+  反向代理到 `127.0.0.1:3000`（已启用 WebSocket）：[`deploy/nginx-easyielts.conf`](deploy/nginx-easyielts.conf)、
+  [`deploy/apache-easyielts.conf`](deploy/apache-easyielts.conf)，或把
+  [`deploy/Caddyfile`](deploy/Caddyfile) 的站点块加入现有 Caddy。
+- **非 Web 服务占用 80/443，且连 80 端口都无法释放** → 改用非标准端口 + **DNS-01** 证书：
   参见 [`deploy/Caddyfile.altport`](deploy/Caddyfile.altport)（需要 DNS 提供商的 API token）。
-
-只要是受信任的 HTTPS，麦克风在任意端口都能工作。脚本会自动在本机防火墙（ufw/firewalld）放行
-`:8443`；但你仍需在 **云安全组** 中手动开放该端口。然后访问 `https://your.domain:8443` 即可。
 
 > 本地无 TLS 的临时测试：Chrome 的 `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
 > 可以把某个 `http://host:3000` 源加入白名单 —— 仅供你自己测试，不适用于面向用户。
