@@ -80,7 +80,7 @@ export function ListeningRunner({ test }: { test: ListeningTest }) {
       {test.sections.map((section) => (
         <section key={section.id} className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold">{section.name}</h2>
-          {!submitted && <AudioPlayer script={section.script} />}
+          {!submitted && <AudioPlayer script={section.script} audioUrl={section.audioUrl} />}
           {submitted && (
             <details className="rounded-lg border border-gray-200 p-3 text-sm dark:border-gray-700" open>
               <summary className="cursor-pointer font-medium">Transcript</summary>
