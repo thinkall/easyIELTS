@@ -128,3 +128,31 @@ npm run test     # vitest (unit + component)
 npm run lint     # eslint
 npm run build    # production build
 ```
+
+## Deploy (free hosting)
+
+easyIELTS needs a **real Node process** — its API routes hold server-side secrets and it runs
+a WebSocket proxy for live speaking — so **static hosts like GitHub Pages won't work**. Use a
+host that runs a persistent Node server with WebSocket support.
+
+**Render (free, simplest)** — this repo ships a [`render.yaml`](render.yaml) Blueprint:
+
+1. Push the repo to GitHub.
+2. In Render: **New → Blueprint**, select the repo, and apply.
+3. (Optional) Set `GITHUB_MODELS_TOKEN` / `GEMINI_API_KEY` in the dashboard, or leave them
+   unset and have users bring their own keys at **/settings**.
+
+> Free Render services sleep after ~15 min idle, so the first request after a nap is slow.
+
+**Fly.io / Koyeb / Railway / any Docker host** — this repo ships a [`Dockerfile`](Dockerfile):
+
+```bash
+fly launch        # detects the Dockerfile; set secrets with: fly secrets set KEY=value
+```
+
+**Always set `HOST=0.0.0.0`** (the `render.yaml` and `Dockerfile` already do) so the server
+is reachable, and provide secrets as env vars — never commit them.
+
+**Vercel** runs Next.js natively but is serverless, so the custom-server **live speaking**
+proxy won't run there; everything else would work.
+

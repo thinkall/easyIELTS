@@ -1,0 +1,34 @@
+# Render Blueprint — free, one-click deploy of easyIELTS.
+# https://render.com/docs/blueprint-spec
+#
+# This runs the app as a real Node web service (the custom server.ts + WebSocket
+# speaking proxy need a persistent process; a static host like GitHub Pages cannot
+# run them). On the free plan the service sleeps after ~15 min idle, so the first
+# request after idle is slow.
+#
+# Usage: push this repo to GitHub, then in Render: New → Blueprint → pick this repo.
+# Render injects PORT automatically; we bind HOST=0.0.0.0 so it is reachable.
+# Do NOT set NODE_ENV here — `npm start` already sets it, and leaving it unset lets
+# the build install devDependencies needed by `next build`.
+services:
+  - type: web
+    name: easyielts
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      # Bind to all interfaces inside the container (server defaults to localhost).
+      - key: HOST
+        value: 0.0.0.0
+      # Next.js 16 requires Node 20+.
+      - key: NODE_VERSION
+        value: "22"
+      - key: GEMINI_LIVE_MODEL
+        value: gemini-3.1-flash-live-preview
+      # Optional owner keys — set the values in the Render dashboard (never commit
+      # them). Leave unset to require users to bring their own keys at /settings.
+      - key: GITHUB_MODELS_TOKEN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false

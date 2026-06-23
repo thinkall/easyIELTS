@@ -1,0 +1,21 @@
+# Build artifacts and local-only files — keep the image small and deterministic.
+node_modules
+.next
+.git
+.gitignore
+
+# Secrets / local env (set these as env vars in your host's dashboard instead)
+.env
+.env*.local
+
+# Dev-only / docs / tests
+tests
+vitest
+docs
+.superpowers
+*.md
+!README.md
+
+# Misc
+npm-debug.log*
+.DS_Store

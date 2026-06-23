@@ -123,3 +123,31 @@ npm run test     # vitest（单元 + 组件测试）
 npm run lint     # eslint
 npm run build    # 生产构建
 ```
+
+## 部署（免费托管）
+
+easyIELTS 需要一个 **真正的 Node 进程** —— 它的 API 路由会持有仅服务端可见的密钥，并且运行着
+用于实时口语的 WebSocket 代理 —— 因此 **像 GitHub Pages 这样的静态托管无法运行它**。请选择一个
+能运行常驻 Node 服务并支持 WebSocket 的托管平台。
+
+**Render（免费、最简单）** —— 本仓库自带 [`render.yaml`](render.yaml) Blueprint：
+
+1. 将仓库推送到 GitHub。
+2. 在 Render 中：**New → Blueprint**，选择该仓库并应用。
+3. （可选）在控制台中设置 `GITHUB_MODELS_TOKEN` / `GEMINI_API_KEY`；也可以不设置，让用户在
+   **/settings** 页面填入自己的密钥。
+
+> Render 免费服务在空闲约 15 分钟后会休眠，因此休眠后的第一次请求会比较慢。
+
+**Fly.io / Koyeb / Railway / 任意 Docker 主机** —— 本仓库自带 [`Dockerfile`](Dockerfile)：
+
+```bash
+fly launch        # 会自动识别 Dockerfile；用 fly secrets set KEY=value 设置密钥
+```
+
+**务必设置 `HOST=0.0.0.0`**（`render.yaml` 与 `Dockerfile` 已经设置好了），这样服务才可被访问；
+并以环境变量的形式提供密钥 —— 切勿提交到代码库。
+
+**Vercel** 原生支持 Next.js，但它是无服务器（serverless）架构，因此依赖自定义服务器的
+**实时口语** 代理无法在其上运行；其余功能均可正常工作。
+
