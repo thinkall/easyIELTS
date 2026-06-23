@@ -1,5 +1,5 @@
 import { chatJson, GitHubModelsError } from "@/server/github-models";
-import { chatJsonCopilot } from "@/server/copilot-models";
+import { chatJsonCopilot, listCopilotModels } from "@/server/copilot-models";
 import { CopilotError } from "@/server/copilot-token";
 import { resolveServerToken } from "@/server/github-token";
 import { getCookie } from "@/server/cookies";
@@ -14,6 +14,30 @@ export type ChatJsonFn = (options: {
 /** Copilot model ids have no vendor prefix; GitHub Models ids do (e.g. "openai/gpt-5"). */
 export function isCopilotModel(model: string | undefined): model is string {
   return !!model && !model.includes("/");
+}
+
+/** Last-resort default when the user's Copilot catalog can't be read. */
+const FALLBACK_COPILOT_MODEL = "gpt-4o";
+
+/**
+ * Choose a sensible default Copilot model for a connected user who hasn't picked
+ * one, preferring a general-purpose chat model from their own catalog so we never
+ * fall back to the rate-limited GitHub Models API.
+ */
+async function pickDefaultCopilotModel(oauthToken: string): Promise<string> {
+  try {
+    const models = await listCopilotModels(oauthToken);
+    if (models.length === 0) return FALLBACK_COPILOT_MODEL;
+    return (
+      models.find((m) => m.id === "gpt-4o")?.id ??
+      models.find((m) => m.id === "gpt-4.1")?.id ??
+      models.find((m) => m.category === "versatile")?.id ??
+      models.find((m) => m.category === "lightweight")?.id ??
+      models[0].id
+    );
+  } catch {
+    return FALLBACK_COPILOT_MODEL;
+  }
 }
 
 export type ChatResolution =
@@ -39,12 +63,22 @@ export async function resolveChatJson(
   opts: { model?: string; bodyToken?: string; rateLimitKey: string; rateLimitMax?: number },
 ): Promise<ChatResolution> {
   const cookieToken = getCookie(request, "eielts_gh");
+  // A vendor-prefixed id (e.g. "openai/gpt-5") is an explicit GitHub Models request;
+  // anything else from a connected user should run on their (unlimited) Copilot account.
+  const wantsGitHubModels = !!opts.model && opts.model.includes("/");
 
   if (isCopilotModel(opts.model)) {
     if (!cookieToken) {
       return { error: { message: "Connect GitHub (device code) in Settings to use this model.", status: 401 } };
     }
     return { chat: (o) => chatJsonCopilot({ ...o, oauthToken: cookieToken, model: opts.model! }) };
+  }
+
+  // Connected user with no specific GitHub Models model selected → route through
+  // Copilot with a default model, avoiding the rate-limited GitHub Models API.
+  if (cookieToken && !wantsGitHubModels) {
+    const model = await pickDefaultCopilotModel(cookieToken);
+    return { chat: (o) => chatJsonCopilot({ ...o, oauthToken: cookieToken, model }) };
   }
 
   let token = opts.bodyToken ?? cookieToken;
