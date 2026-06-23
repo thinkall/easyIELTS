@@ -216,8 +216,16 @@ question navigator / submit).
 
 - 4 parts, 40 questions. Audio **plays once** (single play; configurable "exam mode"
   disables replay/seek). Questions are presented alongside a synced timeline.
+- **Audio is real, not label-reading TTS.** The labelled script is turned into a natural
+  spoken recording via **Gemini multi-speaker TTS** (`gemini-2.5-flash-preview-tts`,
+  `multiSpeakerVoiceConfig`): each speaker gets a distinct voice and the speaker labels
+  ("Caller:", "Receptionist:") are NOT read aloud. Monologues / 3+ speakers are narrated
+  single-voice. Pre-generated audio is committed under `public/audio/listening/` and played
+  instantly; sections without a committed file generate on demand via `POST
+  /api/listening/audio` (owner key server-side, or the user's own key; in-memory cached).
+  Offline/last-resort fallback: multi-voice browser SpeechSynthesis with labels stripped.
 - On submit: objective scoring (see §7) → raw/40 → band (§5.2) → per-question review with
-  correct answers and audio-segment references.
+  correct answers and the transcript revealed.
 
 ### 6.2 Reading
 

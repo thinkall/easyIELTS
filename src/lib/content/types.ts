@@ -39,6 +39,8 @@ export interface ListeningSection {
   name: string;
   /** The audio transcript, spoken by the player and revealed in review. */
   script: string;
+  /** Optional pre-generated audio file; played directly when present. */
+  audioUrl?: string;
   questions: ReadingQuestion[];
 }
 

@@ -9,6 +9,7 @@ export const communityHallTest: ListeningTest = {
     {
       id: "p1",
       name: "Part 1",
+      audioUrl: "/audio/listening/gt-community-hall-p1.wav",
       script:
         "Receptionist: Good morning, Riverside Community Centre, how can I help you? " +
         "Caller: Hi, I'd like to book a room for a children's party next month. " +
