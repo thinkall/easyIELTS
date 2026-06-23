@@ -42,6 +42,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# easyIELTS launcher runtime files (start.sh / start.ps1)
+easyielts.log
+easyielts.err.log
+easyielts.pid
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

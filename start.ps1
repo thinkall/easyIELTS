@@ -4,9 +4,11 @@
     easyIELTS launcher for Windows (PowerShell).
 .DESCRIPTION
     Checks for Node.js (installs it via winget if missing/outdated), installs
-    project dependencies, builds the production bundle, and starts the website.
+    project dependencies, builds, and starts the website IN THE BACKGROUND.
+    Re-running force-restarts: any instance already on the port is stopped first.
+    Logs go to easyielts.log / easyielts.err.log and the PID to easyielts.pid.
 .PARAMETER Dev
-    Run the hot-reload development server instead of a production build.
+    Run the hot-reload development server (foreground) instead of a background build.
 .EXAMPLE
     .\start.ps1
 .EXAMPLE
@@ -22,9 +24,57 @@ $MinNodeMajor = 20
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $ScriptDir
 
+$LogFile = Join-Path $ScriptDir 'easyielts.log'
+$ErrLogFile = Join-Path $ScriptDir 'easyielts.err.log'
+$PidFile = Join-Path $ScriptDir 'easyielts.pid'
+
 function Write-Info($m) { Write-Host "[start] $m" -ForegroundColor Cyan }
 function Write-Note($m) { Write-Host "[start] $m" -ForegroundColor Yellow }
 function Write-Fail($m) { Write-Host "[start] $m" -ForegroundColor Red }
+
+# Resolve the port: an explicit $env:PORT wins, then a PORT= line in .env, then 3000.
+function Get-Port {
+    if ($env:PORT) { try { return [int]$env:PORT } catch {} }
+    if (Test-Path .env) {
+        $line = (Select-String -Path .env -Pattern '^\s*PORT=' -ErrorAction SilentlyContinue | Select-Object -Last 1).Line
+        if ($line) {
+            $val = ($line -replace '^\s*PORT=', '').Trim().Trim('"')
+            if ($val -match '^\d+$') { return [int]$val }
+        }
+    }
+    return 3000
+}
+
+# PIDs listening on the given TCP port.
+function Get-PortOwningPids($port) {
+    $conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+    if ($conns) { return @($conns.OwningProcess | Sort-Object -Unique) }
+    return @()
+}
+
+# Force-restart: stop any instance already bound to the port (or our recorded PID).
+function Stop-Existing($port) {
+    $procIds = Get-PortOwningPids $port
+    if ((@($procIds)).Count -eq 0 -and (Test-Path $PidFile)) {
+        $saved = Get-Content $PidFile -ErrorAction SilentlyContinue | Where-Object { $_ -match '^\d+$' }
+        if ($saved) { $procIds = @($saved | ForEach-Object { [int]$_ }) }
+    }
+    if ((@($procIds)).Count -gt 0) {
+        Write-Note "An instance is already running (PID $($procIds -join ', ')) - stopping it for a clean restart."
+        foreach ($procId in $procIds) { Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue }
+        Start-Sleep -Seconds 1
+    }
+    Remove-Item $PidFile -ErrorAction SilentlyContinue
+}
+
+# Poll for up to ~20s for the server to start listening.
+function Wait-UntilUp($port) {
+    for ($i = 0; $i -lt 40; $i++) {
+        if ((Get-PortOwningPids $port).Count -gt 0) { return $true }
+        Start-Sleep -Milliseconds 500
+    }
+    return $false
+}
 
 function Get-NodeMajor {
     $node = Get-Command node -ErrorAction SilentlyContinue
@@ -105,8 +155,15 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
+$port = Get-Port
+$env:PORT = "$port"
+# Bind to all interfaces by default so the site is reachable via the machine's IP
+# or a domain (not just localhost). Override by setting $env:HOST before running.
+if (-not $env:HOST) { $env:HOST = '0.0.0.0' }
+
 if ($Dev) {
-    Write-Info "Starting the development server (hot reload)..."
+    Stop-Existing $port
+    Write-Info "Starting the development server (hot reload) on port $port - foreground, Ctrl-C to stop."
     npm run dev
     exit $LASTEXITCODE
 }
@@ -118,6 +175,27 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Info "Starting easyIELTS - open the printed URL (default http://localhost:3000)."
-npm start
-exit $LASTEXITCODE
+Stop-Existing $port
+Write-Info "Starting easyIELTS in the background on port $port..."
+$npmCmd = (Get-Command npm.cmd -ErrorAction SilentlyContinue).Source
+if (-not $npmCmd) { $npmCmd = 'npm.cmd' }
+$proc = Start-Process -FilePath $npmCmd -ArgumentList 'start' -WorkingDirectory $ScriptDir `
+    -WindowStyle Hidden -RedirectStandardOutput $LogFile -RedirectStandardError $ErrLogFile -PassThru
+$proc.Id | Out-File -FilePath $PidFile -Encoding ascii
+
+if (Wait-UntilUp $port) {
+    $listenPids = Get-PortOwningPids $port
+    if ($listenPids.Count -gt 0) { ($listenPids -join "`r`n") | Out-File -FilePath $PidFile -Encoding ascii }
+    $shown = if ($listenPids.Count -gt 0) { $listenPids -join ', ' } else { $proc.Id }
+    Write-Info "OK - easyIELTS is running in the background."
+    Write-Info "    Local:  http://localhost:$port"
+    Write-Info "    Public: http://<this-machine-ip-or-domain>:$port  (HOST=$($env:HOST); open the port in your firewall)"
+    Write-Info "    Logs:  $LogFile  (errors: $ErrLogFile)"
+    Write-Info "    PID:   $shown  (stored in $PidFile)"
+    Write-Info "    Stop:  re-run this script to restart, or: Stop-Process -Id $shown -Force"
+} else {
+    Write-Fail "easyIELTS did not come up within the timeout. Recent logs:"
+    if (Test-Path $LogFile) { Get-Content $LogFile -Tail 25 }
+    if (Test-Path $ErrLogFile) { Get-Content $ErrLogFile -Tail 25 }
+    exit 1
+}
