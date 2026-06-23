@@ -156,3 +156,25 @@ is reachable, and provide secrets as env vars — never commit them.
 **Vercel** runs Next.js natively but is serverless, so the custom-server **live speaking**
 proxy won't run there; everything else would work.
 
+## HTTPS (required for the microphone)
+
+Browsers only allow microphone access (`getUserMedia`, used by **Speaking**) on a **secure
+context** — HTTPS or `localhost`. A public **HTTP** site has the mic **blocked by Chrome**, so
+serve it over HTTPS.
+
+If you self-host on a VM with a domain, this repo includes a one-command **Caddy** reverse
+proxy (auto Let's Encrypt TLS; it also proxies the speaking WebSocket):
+
+```bash
+# DNS must point the domain at the VM, and ports 80 + 443 must be open.
+bash start.sh                                            # app on :3000
+sudo EASYIELTS_DOMAIN=your.domain.com bash deploy/setup-https.sh
+# then open https://your.domain.com  (mic now allowed)
+```
+
+See [`deploy/Caddyfile`](deploy/Caddyfile) / [`deploy/setup-https.sh`](deploy/setup-https.sh).
+Managed hosts (Render, Fly.io, …) already give you HTTPS, so the mic works there out of the box.
+
+> Quick local test without TLS: Chrome's `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
+> can whitelist a specific `http://host:3000` origin — for your own testing only, not for users.
+

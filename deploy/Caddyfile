@@ -1,0 +1,21 @@
+# easyIELTS HTTPS reverse proxy (Caddy).
+#
+# Browsers only allow microphone access (getUserMedia, used by the Speaking module)
+# on a secure context — HTTPS or localhost. Serving the app over plain HTTP on a
+# public domain blocks the mic, so put HTTPS in front with this reverse proxy.
+#
+# Caddy automatically obtains and renews a Let's Encrypt certificate for your
+# domain and proxies to the Node app (it forwards WebSocket upgrades too, which the
+# live speaking proxy needs).
+#
+# Requirements: your domain's DNS points at this server, and ports 80 + 443 are
+# open in the cloud security group / firewall.
+#
+# Run:  EASYIELTS_DOMAIN=mywx.liyangai.com caddy run --config deploy/Caddyfile
+# (or use deploy/setup-https.sh to install Caddy as a systemd service).
+
+{$EASYIELTS_DOMAIN} {
+	encode zstd gzip
+	# The Node app from `bash start.sh` (defaults to 127.0.0.1:3000).
+	reverse_proxy {$EASYIELTS_UPSTREAM:127.0.0.1:3000}
+}

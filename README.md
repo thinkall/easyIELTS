@@ -151,3 +151,24 @@ fly launch        # 会自动识别 Dockerfile；用 fly secrets set KEY=value �
 **Vercel** 原生支持 Next.js，但它是无服务器（serverless）架构，因此依赖自定义服务器的
 **实时口语** 代理无法在其上运行；其余功能均可正常工作。
 
+## HTTPS（麦克风必需）
+
+浏览器只允许在 **安全上下文**（HTTPS 或 `localhost`）下访问麦克风（`getUserMedia`，**口语** 模块
+要用到）。公网上的 **HTTP** 站点会被 Chrome **禁用麦克风**，因此必须使用 HTTPS 提供服务。
+
+如果你在带域名的 VM 上自托管，本仓库提供了一条命令搞定的 **Caddy** 反向代理（自动申请
+Let's Encrypt 证书，并同时代理口语所需的 WebSocket）：
+
+```bash
+# 域名 DNS 需指向该 VM，且需开放 80 与 443 端口。
+bash start.sh                                            # 应用运行在 :3000
+sudo EASYIELTS_DOMAIN=your.domain.com bash deploy/setup-https.sh
+# 然后打开 https://your.domain.com（此时麦克风即被允许）
+```
+
+参见 [`deploy/Caddyfile`](deploy/Caddyfile) / [`deploy/setup-https.sh`](deploy/setup-https.sh)。
+托管平台（Render、Fly.io 等）本身已提供 HTTPS，因此麦克风开箱即用。
+
+> 本地无 TLS 的临时测试：Chrome 的 `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
+> 可以把某个 `http://host:3000` 源加入白名单 —— 仅供你自己测试，不适用于面向用户。
+
