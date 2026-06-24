@@ -7,10 +7,13 @@ export interface SpeakingTest {
   topic?: string;
 }
 
+import { moreSpeakingTests } from "@content/tests/speaking/more-speaking";
+
 const SPEAKING_TESTS: SpeakingTest[] = [
   { id: "gt-speaking-part1", skill: "speaking", title: "Speaking Part 1 — Interview", part: "1" },
   { id: "gt-speaking-part2", skill: "speaking", title: "Speaking Part 2 — Long turn", part: "2" },
   { id: "gt-speaking-part3", skill: "speaking", title: "Speaking Part 3 — Discussion", part: "3" },
+  ...moreSpeakingTests,
 ];
 
 export function getSpeakingTests(): SpeakingTest[] {

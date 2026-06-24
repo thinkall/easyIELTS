@@ -1,6 +1,7 @@
 import { writingTest001, type WritingTest } from "@content/tests/writing/gt-writing-001";
+import { moreWritingTests } from "@content/tests/writing/more-writing";
 
-const WRITING_TESTS: WritingTest[] = [writingTest001];
+const WRITING_TESTS: WritingTest[] = [writingTest001, ...moreWritingTests];
 
 export function getWritingTests(): WritingTest[] {
   return WRITING_TESTS;
