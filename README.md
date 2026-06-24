@@ -139,6 +139,13 @@ npm start
 被提交或上传 —— 请仅添加你有合法权利使用的材料。可用 `EASYIELTS_BOOKS_DIR` 覆盖该文件夹路径。
 详见 [`examples/books/`](examples/books/)。
 
+## 音频（你的私有音频库）
+
+在 **`/audios`** 中播放音频文件。把你自己的音频（`.mp3`、`.m4a`、`.wav` 等）放进被 gitignore 的
+**`private/audios/`** 文件夹（支持子文件夹，并按分组显示）即会带播放器显示。支持拖动进度（HTTP
+Range）。`private/` 中的内容绝不会被提交或上传；请仅添加你有合法权利使用的材料。可用
+`EASYIELTS_AUDIOS_DIR` 覆盖该文件夹路径。
+
 ## 路由
 
 | 路径 | 说明 |
@@ -149,6 +156,7 @@ npm start
 | `/writing` | 由 LLM 评分的写作任务 |
 | `/speaking` | Gemini 实时口语考试 |
 | `/books` | 你的私有 PDF 书籍库 |
+| `/audios` | 你的私有音频库（含播放器） |
 | `/past-exams` | 你的私有往年真题库（四项技能；不在导航栏） |
 | `/dashboard` | 你的答题记录与分数段进度 |
 | `/settings` | 你的 API 密钥与模型选择 |

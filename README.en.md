@@ -151,6 +151,14 @@ embedded viewer. Nothing in `private/` is committed or uploaded — only add mat
 legally entitled to use. Override the folder with `EASYIELTS_BOOKS_DIR`. See
 [`examples/books/`](examples/books/) for details.
 
+## Audios (your private audio library)
+
+Play audio files in the browser at **`/audios`**. Drop your own audio (`.mp3`, `.m4a`, `.wav`,
+…) into the gitignored **`private/audios/`** folder — subfolders are supported and shown as
+groups — then they appear with a player. Seeking is supported (HTTP Range). Nothing in
+`private/` is committed or uploaded; only add material you're legally entitled to use. Override
+the folder with `EASYIELTS_AUDIOS_DIR`.
+
 ## Routes
 
 | Path | Description |
@@ -161,6 +169,7 @@ legally entitled to use. Override the folder with `EASYIELTS_BOOKS_DIR`. See
 | `/writing` | LLM-evaluated writing tasks |
 | `/speaking` | Live Gemini speaking exam |
 | `/books` | Your private PDF book library |
+| `/audios` | Your private audio library (with player) |
 | `/past-exams` | Your private past-paper library (all four skills; not in nav) |
 | `/dashboard` | Your attempts & band progress |
 | `/settings` | Your API keys + model selection |
