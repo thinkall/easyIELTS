@@ -50,6 +50,9 @@ easyielts.pid
 # Persisted runtime data (e.g. visit counter)
 /data/
 
+# Private user-provided past exams (your own copyrighted papers/audio — never committed)
+/private/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

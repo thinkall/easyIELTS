@@ -124,6 +124,14 @@ npm start
 浏览器（仅返回状态和打码提示）。设置页中按用户的 **“用设备码连接”** 保持不变，仅对该浏览器生效。
 若未设置 `ADMIN_PASSWORD`，则 `/admin` 处于禁用状态。
 
+## 往年真题（你的私有题库）
+
+运行 **你自己提供的整套真题**。文件保留在你本机 —— 将每套测试放进被 gitignore 的
+**`private/past-exams/`** 文件夹（每套一个子目录，含 `manifest.json` 与音频文件），然后打开
+**`/past-exams`**。听力/阅读自动评分；写作/口语使用 LLM/实时考官。`private/` 中的内容绝不会被提交
+或上传。格式与模板见 [`examples/past-exams/`](examples/past-exams/)，且请仅添加你有合法权利使用的
+材料。可用 `EASYIELTS_PAST_EXAMS_DIR` 覆盖该文件夹路径。
+
 ## 路由
 
 | 路径 | 说明 |
@@ -133,6 +141,7 @@ npm start
 | `/reading/generate` | AI 生成的原创阅读测试 |
 | `/writing` | 由 LLM 评分的写作任务 |
 | `/speaking` | Gemini 实时口语考试 |
+| `/past-exams` | 你的私有往年真题库（四项技能） |
 | `/dashboard` | 你的答题记录与分数段进度 |
 | `/settings` | 你的 API 密钥与模型选择 |
 | `/connect` | 连接 GitHub（设备码流程） |

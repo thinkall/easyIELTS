@@ -133,6 +133,16 @@ needed. The admin page never returns the raw secrets to the browser (only status
 hint). The per-user **/settings → Connect with device code** is unchanged and stays personal to
 that browser. If `ADMIN_PASSWORD` is unset, `/admin` is disabled.
 
+## Past exams (your private library)
+
+Run **full past papers you provide yourself**. Your files stay on your machine — drop each test
+into the gitignored **`private/past-exams/`** folder (a subfolder per test with a
+`manifest.json` and audio files), then open **`/past-exams`**. Listening/Reading are
+auto-scored; Writing/Speaking use the LLM/live examiner. Nothing in `private/` is ever committed
+or uploaded. See [`examples/past-exams/`](examples/past-exams/) for a template and the format,
+and only add material you're legally entitled to use. Override the folder with
+`EASYIELTS_PAST_EXAMS_DIR`.
+
 ## Routes
 
 | Path | Description |
@@ -142,6 +152,7 @@ that browser. If `ADMIN_PASSWORD` is unset, `/admin` is disabled.
 | `/reading/generate` | AI-generated original reading test |
 | `/writing` | LLM-evaluated writing tasks |
 | `/speaking` | Live Gemini speaking exam |
+| `/past-exams` | Your private past-paper library (all four skills) |
 | `/dashboard` | Your attempts & band progress |
 | `/settings` | Your API keys + model selection |
 | `/connect` | Connect GitHub (device flow) |

@@ -1,0 +1,46 @@
+{
+  "title": "Sample Exam — Test 1 (template)",
+  "listening": {
+    "timeMinutes": 30,
+    "sections": [
+      {
+        "name": "Section 1",
+        "audio": "section1.mp3",
+        "questions": [
+          { "type": "form_completion", "prompt": "Customer name: ___", "accepted": ["placeholder answer"], "wordLimit": 3 },
+          { "type": "single_choice", "prompt": "What does the caller want?", "accepted": ["B"], "options": ["A a refund", "B a replacement", "C an apology"] }
+        ]
+      }
+    ]
+  },
+  "reading": {
+    "timeMinutes": 60,
+    "sections": [
+      {
+        "name": "Section 1",
+        "passageTitle": "Your own passage title goes here",
+        "passageParagraphs": [
+          "Replace this with the first paragraph of your own / your legally-owned passage.",
+          "Replace this with the next paragraph."
+        ],
+        "questions": [
+          { "type": "true_false_notgiven", "prompt": "A statement to judge against the passage.", "accepted": ["true"] },
+          { "type": "sentence_completion", "prompt": "The service was introduced in the ___.", "accepted": ["1940s"], "wordLimit": 1 }
+        ]
+      }
+    ]
+  },
+  "writing": {
+    "tasks": [
+      { "taskNumber": 1, "minWords": 150, "instructions": "Write a letter. In your letter: ... Begin 'Dear Sir or Madam,'." },
+      { "taskNumber": 2, "minWords": 250, "instructions": "Discuss both views and give your own opinion on the essay topic." }
+    ]
+  },
+  "speaking": {
+    "parts": [
+      { "part": "1", "title": "Part 1 — Interview", "topic": "Ask everyday questions about home, work/study, and hobbies." },
+      { "part": "2", "title": "Part 2 — Long turn", "topic": "Describe a place you like to visit. You should say where it is, how often you go, what you do there, and explain why you like it." },
+      { "part": "3", "title": "Part 3 — Discussion", "topic": "Discuss tourism and travel in more depth." }
+    ]
+  }
+}
