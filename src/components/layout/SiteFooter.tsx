@@ -9,6 +9,14 @@ export function SiteFooter() {
           <Link href="/dashboard" className="hover:text-gray-900 dark:hover:text-gray-200">Dashboard</Link>
           <Link href="/settings" className="hover:text-gray-900 dark:hover:text-gray-200">Settings</Link>
           <Link href="/connect" className="hover:text-gray-900 dark:hover:text-gray-200">Connect GitHub</Link>
+          <a
+            href="https://github.com/thinkall/easyIELTS"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-gray-900 dark:hover:text-gray-200"
+          >
+            Source code
+          </a>
         </nav>
       </div>
     </footer>

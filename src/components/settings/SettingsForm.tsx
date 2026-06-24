@@ -17,6 +17,7 @@ export function SettingsForm() {
   const [model, setModel] = useState("");
   const [models, setModels] = useState<ModelOption[]>([]);
   const [saved, setSaved] = useState(false);
+  const [cleared, setCleared] = useState(false);
 
   useEffect(() => {
     const s = getSettings();
@@ -50,6 +51,8 @@ export function SettingsForm() {
     setModel("");
     setModels([]);
     try { await fetch("/api/auth/github/logout", { method: "POST" }); } catch { /* ignore */ }
+    setCleared(true);
+    setTimeout(() => setCleared(false), 4000);
   }
 
   return (
@@ -104,6 +107,11 @@ export function SettingsForm() {
         <button onClick={clearData} className="mt-3 self-start rounded-lg bg-red-600 px-5 py-2 text-sm font-medium text-white hover:bg-red-700">
           Clear all my data
         </button>
+        {cleared && (
+          <p role="status" className="mt-3 text-sm font-medium text-green-600 dark:text-green-400">
+            ✓ Your data has been cleared.
+          </p>
+        )}
       </section>
     </div>
   );

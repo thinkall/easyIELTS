@@ -27,6 +27,14 @@ describe("SettingsForm", () => {
     expect(fetch).toHaveBeenCalledWith("/api/auth/github/logout", { method: "POST" });
   });
 
+  it("shows a confirmation message after clearing data", async () => {
+    const fetch = vi.fn(async () => ({ ok: true }));
+    vi.stubGlobal("fetch", fetch);
+    render(<SettingsForm />);
+    await userEvent.click(screen.getByRole("button", { name: /clear all my data/i }));
+    expect(await screen.findByText(/data (has been |)cleared/i)).toBeInTheDocument();
+  });
+
   it("does not read saved keys during server render", () => {
     saveSettings({ geminiApiKey: "stored-gemini-key", githubToken: "stored-github-token" });
     const html = renderToString(<SettingsForm />);
