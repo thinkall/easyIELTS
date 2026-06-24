@@ -4,6 +4,8 @@
 
 一个用于 **雅思 General Training（培训类）** 备考的 Web 应用，覆盖听、读、写、说四项技能。
 
+![easyIELTS 演示](docs/media/easyielts-demo.gif)
+
 - **听力 & 阅读** —— 自动评分的模拟测试，并换算为雅思分数段（band）。
 - **写作** —— 由大语言模型（LLM）评分（4 项评分标准 + 反馈 + 范文）。
 - **口语** —— 通过 **Gemini Live API** 进行实时口语模拟考试，随后由 LLM 评分。

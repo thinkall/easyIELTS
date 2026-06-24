@@ -4,6 +4,8 @@
 
 A web app for **IELTS General Training** preparation across all four skills — Listening, Reading, Writing, and Speaking.
 
+![easyIELTS demo](docs/media/easyielts-demo.gif)
+
 - **Listening & Reading** — auto-scored mock tests with band conversion.
 - **Writing** — LLM evaluation (4 criteria + feedback + model answer).
 - **Speaking** — live oral exam via the **Gemini Live API**, then LLM scoring.
