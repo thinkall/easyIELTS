@@ -141,7 +141,15 @@ into the gitignored **`private/past-exams/`** folder (a subfolder per test with 
 auto-scored; Writing/Speaking use the LLM/live examiner. Nothing in `private/` is ever committed
 or uploaded. See [`examples/past-exams/`](examples/past-exams/) for a template and the format,
 and only add material you're legally entitled to use. Override the folder with
-`EASYIELTS_PAST_EXAMS_DIR`.
+`EASYIELTS_PAST_EXAMS_DIR`. (This section is reachable by URL; it isn't shown in the nav bar.)
+
+## Books (your private PDF library)
+
+Read PDF study books in the browser at **`/books`**. Drop your own `.pdf` files into the
+gitignored **`private/books/`** folder and they appear in the list; click one to read it in an
+embedded viewer. Nothing in `private/` is committed or uploaded — only add material you're
+legally entitled to use. Override the folder with `EASYIELTS_BOOKS_DIR`. See
+[`examples/books/`](examples/books/) for details.
 
 ## Routes
 
@@ -152,7 +160,8 @@ and only add material you're legally entitled to use. Override the folder with
 | `/reading/generate` | AI-generated original reading test |
 | `/writing` | LLM-evaluated writing tasks |
 | `/speaking` | Live Gemini speaking exam |
-| `/past-exams` | Your private past-paper library (all four skills) |
+| `/books` | Your private PDF book library |
+| `/past-exams` | Your private past-paper library (all four skills; not in nav) |
 | `/dashboard` | Your attempts & band progress |
 | `/settings` | Your API keys + model selection |
 | `/connect` | Connect GitHub (device flow) |

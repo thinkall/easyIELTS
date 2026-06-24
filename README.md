@@ -130,7 +130,14 @@ npm start
 **`private/past-exams/`** 文件夹（每套一个子目录，含 `manifest.json` 与音频文件），然后打开
 **`/past-exams`**。听力/阅读自动评分；写作/口语使用 LLM/实时考官。`private/` 中的内容绝不会被提交
 或上传。格式与模板见 [`examples/past-exams/`](examples/past-exams/)，且请仅添加你有合法权利使用的
-材料。可用 `EASYIELTS_PAST_EXAMS_DIR` 覆盖该文件夹路径。
+材料。可用 `EASYIELTS_PAST_EXAMS_DIR` 覆盖该文件夹路径。（该页面可通过 URL 访问，但不显示在导航栏。）
+
+## 书籍（你的私有 PDF 库）
+
+在 **`/books`** 中阅读 PDF 学习书籍。把你自己的 `.pdf` 文件放进被 gitignore 的
+**`private/books/`** 文件夹即会出现在列表中，点击即可在内嵌阅读器中查看。`private/` 中的内容绝不会
+被提交或上传 —— 请仅添加你有合法权利使用的材料。可用 `EASYIELTS_BOOKS_DIR` 覆盖该文件夹路径。
+详见 [`examples/books/`](examples/books/)。
 
 ## 路由
 
@@ -141,7 +148,8 @@ npm start
 | `/reading/generate` | AI 生成的原创阅读测试 |
 | `/writing` | 由 LLM 评分的写作任务 |
 | `/speaking` | Gemini 实时口语考试 |
-| `/past-exams` | 你的私有往年真题库（四项技能） |
+| `/books` | 你的私有 PDF 书籍库 |
+| `/past-exams` | 你的私有往年真题库（四项技能；不在导航栏） |
 | `/dashboard` | 你的答题记录与分数段进度 |
 | `/settings` | 你的 API 密钥与模型选择 |
 | `/connect` | 连接 GitHub（设备码流程） |

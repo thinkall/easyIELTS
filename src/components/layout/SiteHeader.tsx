@@ -9,7 +9,7 @@ const NAV = [
   { name: "Reading", href: "/reading" },
   { name: "Writing", href: "/writing" },
   { name: "Speaking", href: "/speaking" },
-  { name: "Past exams", href: "/past-exams" },
+  { name: "Books", href: "/books" },
   { name: "Dashboard", href: "/dashboard" },
 ];
 
