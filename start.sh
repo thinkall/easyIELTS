@@ -145,18 +145,36 @@ node_major() {
 }
 
 ensure_node() {
+  # 1. Node already on PATH and new enough → done.
   if [ "$(node_major)" -ge "$MIN_NODE_MAJOR" ] 2>/dev/null; then
     info "Node $(node -v) detected."
     return
   fi
 
-  if command -v node >/dev/null 2>&1; then
-    warn "Node.js $(node -v) is older than the required v${MIN_NODE_MAJOR}."
-  else
-    warn "Node.js was not found."
+  # 2. A non-interactive `bash start.sh` doesn't source ~/.bashrc, so an
+  #    nvm-installed Node won't be on PATH yet. If nvm is already present, load it
+  #    and activate Node — this is the common case on every run after the first.
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  if [ -s "$NVM_DIR/nvm.sh" ]; then
+    # shellcheck disable=SC1090
+    # nvm.sh isn't safe under `set -u` (references unbound vars), so relax it.
+    set +u
+    . "$NVM_DIR/nvm.sh"
+    nvm use --lts >/dev/null 2>&1 || nvm use default >/dev/null 2>&1 || true
+    set -u
+    if [ "$(node_major)" -ge "$MIN_NODE_MAJOR" ] 2>/dev/null; then
+      info "Node $(node -v) detected (activated via nvm)."
+      return
+    fi
   fi
 
-  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  # 3. Still no suitable Node → install it.
+  if command -v node >/dev/null 2>&1; then
+    warn "Node.js $(node -v) is older than the required v${MIN_NODE_MAJOR} — installing a newer one."
+  else
+    warn "Node.js was not found — installing it now (one-time setup)."
+  fi
+
   if [ ! -s "$NVM_DIR/nvm.sh" ]; then
     info "Installing nvm ${NVM_VERSION} (Node Version Manager)..."
     if command -v curl >/dev/null 2>&1; then
